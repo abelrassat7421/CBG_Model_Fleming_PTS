@@ -3,7 +3,7 @@ FROM python:3.9.5
 WORKDIR /usr/app/src/CBG_Fleming_Model
 
 RUN pip3 install numpy==1.23.1 scipy==1.9.0 PyNN==0.10.0
-RUN pip3 install NEURON==8.0
+RUN pip3 install NEURON==8.2.2
 RUN pip3 install nrnutils==0.2.0
 RUN pip3 install pyyaml
 

@@ -8,5 +8,5 @@ SteadyStateDuration: 500
 # Controller
 SetPoint: 0
 Ts: 0
-save_stn_voltage: False
+save_stn_voltage: yes
 beta_burst_modulation_scale: 0.02
