@@ -1,5 +1,6 @@
 .idea/
 .vscode/
+.DS_store
 __pycache__
 burst_*.txt
 Controller_Simulations
@@ -11,4 +12,4 @@ PI_grid_search_12
 *.out
 *.png
 *.eps
-Results
+

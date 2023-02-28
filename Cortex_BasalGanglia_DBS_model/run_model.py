@@ -13,6 +13,14 @@ Description:
 
 Original author: John Fleming, john.fleming@ucdconnect.ie
 """
+
+#Debugging 
+#import debugpy
+""" debugpy.listen(("0.0.0.0", 5678))
+print("Waiting for client to attach...")
+debugpy.wait_for_client() """
+#####
+
 import os
 from pathlib import Path
 
@@ -224,8 +232,8 @@ if __name__ == "__main__":
         Controller = StandardPIDController
     elif controller_type == "IFT":
         Controller = IterativeFeedbackTuningPIController
-
-    #Add controler type here for PTS
+    #elif controller_type == "PTS"
+        #Controller = PhaseTargetStimulation
 
     else:
         raise RuntimeError("Bad choice of Controller")
