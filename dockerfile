@@ -20,6 +20,8 @@ RUN pip3 install mpi4py==3.1.4
 RUN apt-get -y install time
 RUN pip3 install debugpy cerberus
 
+RUN pip install ptvsd
+
 WORKDIR /usr/app/src/CBG_Fleming_Model
 
 COPY ./Cortex_BasalGanglia_DBS_model/*.txt ./

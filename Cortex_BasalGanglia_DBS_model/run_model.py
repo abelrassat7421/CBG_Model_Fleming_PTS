@@ -16,9 +16,9 @@ Original author: John Fleming, john.fleming@ucdconnect.ie
 
 #Debugging 
 #import debugpy
-""" debugpy.listen(("0.0.0.0", 5678))
-print("Waiting for client to attach...")
-debugpy.wait_for_client() """
+#debugpy.listen(("0.0.0.0", 5679))
+#print("Waiting for client to attach...")
+#debugpy.wait_for_client()
 #####
 
 import os
@@ -42,7 +42,9 @@ from Controllers import (
     ZeroController,
     StandardPIDController,
     IterativeFeedbackTuningPIController,
+    PhaseStimulationController
 )
+
 import neo.io
 import quantities as pq
 import numpy as np
@@ -67,9 +69,9 @@ if __name__ == "__main__":
     )
     args, unknown = parser.parse_known_args()
 
-    config_file = Path(args.config_file).resolve()
+    config_file = Path("conf_freq.yml").resolve()
     output_dir = Path(args.output_dir).resolve()
-    c = Config(args.config_file)
+    c = Config("conf_freq.yml")
     os.chdir(newpwd)
 
     simulation_runtime = c.RunTime
@@ -232,9 +234,8 @@ if __name__ == "__main__":
         Controller = StandardPIDController
     elif controller_type == "IFT":
         Controller = IterativeFeedbackTuningPIController
-    #elif controller_type == "PTS"
-        #Controller = PhaseTargetStimulation
-
+    elif controller_type == "PTS":
+        Controller = PhaseStimulationController
     else:
         raise RuntimeError("Bad choice of Controller")
 

@@ -161,6 +161,131 @@ class ZeroController:
         return self.label
 
 
+class PhaseStimulationController:
+    """Class for Phase stimulation at the peak of each oscillation"""
+
+    def update(self, state_value, current_time):
+        """Calculates controller output signal for given reference feedback
+
+        where:
+        u(t) = K_p (e(t) + (1/T_i)* \\int_{0}^{t} e(t)dt + T_d {de}/{dt})
+        where the error calculated is the tracking error (r(t) - y(t))
+        """
+
+        # Calculate Error - if SetPoint > 0.0, then normalize error with
+        # respect to set point
+        if self.SetPoint == 0.0:
+            error = state_value - self.SetPoint
+        else:
+            error = (state_value - self.SetPoint) / self.SetPoint
+
+        # Converting from msec to sec
+        self.current_time = current_time / 1000.0
+        delta_time = self.Ts
+        delta_error = error - self.last_error
+
+        self.ITerm += error * delta_time
+
+        self.DTerm = 0.0
+        if delta_time > 0:
+            self.DTerm = delta_error / delta_time
+
+        # Remember last time and last error for next calculation
+        self.last_time = self.current_time
+        self.last_error = error
+
+        # Calculate u(t) - catch potential division by zero error
+        try:
+            u = self.Kp * (
+                error + ((1.0 / self.Ti) * self.ITerm) + (self.Td * self.DTerm)
+            )
+        except ZeroDivisionError:
+            u = self.Kp * (error + (0.0 * self.ITerm) + (self.Td * self.DTerm))
+
+        # Bound the controller output if necessary
+        # (between MinValue - MaxValue)
+        if u > self.MaxValue:
+            self.OutputValue = self.MaxValue
+            # Back-calculate the integral error
+            self.ITerm -= error * delta_time
+        elif u < self.MinValue:
+            self.OutputValue = self.MinValue
+            # Back-calculate the integral error
+            self.ITerm -= error * delta_time
+        else:
+            self.OutputValue = u
+
+        # Update the last output value
+        self.last_OutputValue = self.OutputValue
+
+        # Record state, error, y(t), and sample time values
+        self.state_history.append(state_value)
+        self.error_history.append(error)
+        self.output_history.append(self.OutputValue)
+        # Convert from msec to sec
+        self.sample_times.append(current_time / 1000)
+
+        # Return controller output
+        return self.OutputValue
+
+
+    def generate_dbs_signal(
+        self,
+        start_time,
+        stop_time,
+        dt,
+        amplitude,
+        frequency,
+        pulse_width,
+        offset,
+        last_pulse_time_prior=0,
+    ):
+        """Generate monophasic square-wave DBS signal
+
+        Example inputs:
+            start_time = 0                # ms
+            stop_time = 12000            # ms
+            dt = 0.01                    # ms
+            amplitude = -1.0            # mA (<0 = cathodic, >0 = anodic)
+            frequency = 130.0            # Hz
+            pulse_width    = 0.06            # ms
+            offset = 0                    # mA
+        """
+
+        times = np.round(np.arange(start_time, stop_time, dt), 2)
+        tmp = np.arange(0, stop_time - start_time, dt) / 1000.0
+
+        if frequency == 0:
+            dbs_signal = np.zeros(len(tmp))
+            last_pulse_time = last_pulse_time_prior
+            next_pulse_time = 1e9
+        else:
+            # Calculate the duty cycle of the DBS signal
+            isi = 1000.0 / frequency  # time is in ms
+            duty_cycle = pulse_width / isi
+            tt = 2.0 * np.pi * frequency * tmp
+            dbs_signal = offset + 0.5 * (1.0 + signal.square(tt, duty=duty_cycle))
+            dbs_signal[-1] = 0.0
+
+            # Calculate the time for the first pulse of the next segment
+            try:
+                last_pulse_index = np.where(np.diff(dbs_signal) < 0)[0][-1]
+                next_pulse_time = times[last_pulse_index] + isi - pulse_width
+
+                # Track when the last pulse was
+                last_pulse_time = times[last_pulse_index]
+
+            except IndexError:
+                # Catch times when signal may be flat
+                last_pulse_index = len(dbs_signal) - 1
+                next_pulse_time = times[last_pulse_index] + isi - pulse_width
+
+            # Rescale amplitude
+            dbs_signal *= amplitude
+
+        return dbs_signal, times, next_pulse_time, last_pulse_time
+
+
 class ConstantController:
     """Constant DBS Parameter Controller Class"""
 
