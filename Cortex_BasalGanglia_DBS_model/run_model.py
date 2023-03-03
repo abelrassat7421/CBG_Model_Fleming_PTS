@@ -69,9 +69,9 @@ if __name__ == "__main__":
     )
     args, unknown = parser.parse_known_args()
 
-    config_file = Path("conf_freq.yml").resolve()
+    #config_file = Path("conf_IFT_30s.yml").resolve()
     output_dir = Path(args.output_dir).resolve()
-    c = Config("conf_freq.yml")
+    c = Config("conf_baseline_30s.yml")
     os.chdir(newpwd)
 
     simulation_runtime = c.RunTime

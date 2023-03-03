@@ -31,6 +31,13 @@ ift_schema = dict(
     min_ti={"type": "float", "coerce": float},
 )
 
+"""
+pts_schema = dict(
+    SetPoint={"type": "float", "coerce": float}, # understand what this is for 
+    Ts={"type": "float", "coerce": float}, # understand what this is for 
+)
+"""
+
 
 class Config(object):
     schema = dict(
@@ -49,7 +56,7 @@ class Config(object):
         RandomSeed={"type": "integer", "coerce": int, "default": 3695},
         TimeStep={"type": "float", "coerce": float, "default": 0.01},
         SteadyStateDuration={"type": "float", "coerce": float, "default": 6000.0},
-        RunTime={"type": "float", "coerce": float, "default": 32000.0},
+        RunTime={"type": "float", "coerce": float, "default": 30000.0},
         SetPoint={"type": "float", "coerce": float, "default": 0},
         beta_burst_modulation_scale={"type": "float", "coerce": float, "default": 0.02},
         modulation_offset={"type": "float", "coerce": float, "default": 0},
@@ -99,6 +106,8 @@ def get_controller_kwargs(config):
         schema = pid_schema
     elif controller == "IFT":
         schema = ift_schema
+    # elif controller == "PTS":
+        #schema = pts_schema
     else:
         raise RuntimeError("Invalid controller type")
 
