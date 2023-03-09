@@ -1,11 +1,13 @@
----
 # Simulation
-Controller: Zero
+Controller: PTS
 TimeStep: 0.01
 RandomSeed: 3695
 SteadyStateDuration: 6000
 RunTime: 30000.0
 
 # Controller
-SetPoint: 0
-Ts: 0
+SetPoint: 0.0
+Ts: 0.02
+ConstantValue: 1.0
+MinValue: 0.0
+MaxValue: 4.0

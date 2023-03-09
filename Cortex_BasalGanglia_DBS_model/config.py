@@ -7,6 +7,14 @@ zero_schema = dict(
     Ts={"type": "float", "coerce": float},
 )
 
+pts_schema = dict(
+    SetPoint={"type": "float", "coerce": float},
+    Ts={"type": "float", "coerce": float},
+    ConstantValue={"type": "float", "coerce": float},
+    MinValue={"type": "float", "coerce": float},
+    MaxValue={"type": "float", "coerce": float},
+)
+
 pid_schema = dict(
     SetPoint={"type": "float", "coerce": float},
     Kp={"type": "float", "coerce": float},
@@ -31,13 +39,6 @@ ift_schema = dict(
     min_ti={"type": "float", "coerce": float},
 )
 
-"""
-pts_schema = dict(
-    SetPoint={"type": "float", "coerce": float}, # understand what this is for 
-    Ts={"type": "float", "coerce": float}, # understand what this is for 
-)
-"""
-
 
 class Config(object):
     schema = dict(
@@ -45,7 +46,7 @@ class Config(object):
             "type": "string",
             "coerce": (str, lambda x: x.upper()),
             "default": "ZERO",
-            "allowed": ("ZERO", "PID", "IFT"),
+            "allowed": ("ZERO", "PTS", "PID", "IFT"),
         },
         Modulation={
             "type": "string",
@@ -106,8 +107,8 @@ def get_controller_kwargs(config):
         schema = pid_schema
     elif controller == "IFT":
         schema = ift_schema
-    # elif controller == "PTS":
-        #schema = pts_schema
+    elif controller == "PTS":
+        schema = pts_schema
     else:
         raise RuntimeError("Invalid controller type")
 

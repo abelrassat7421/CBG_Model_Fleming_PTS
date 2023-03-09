@@ -162,72 +162,83 @@ class ZeroController:
 
 
 class PhaseStimulationController:
-    """Class for Phase stimulation at the peak of each oscillation"""
+    """Class for Stimulation of 60µs at given peaks start 
+    30 µs before and end 30 µs after timepoint 
+    - The controler will seep through different combinations 
+    of phase and stimulation amplitude"""
 
+    # From ConstantController
+    def __init__(
+        self,
+        SetPoint=0.0,
+        MinValue=0.0,
+        MaxValue=1e9,
+        ConstantValue=0.0,
+        Ts=0.0,
+        units="mA",
+    ):
+        # Initial Controller Values
+        self.SetPoint = SetPoint
+        self.MaxValue = MaxValue
+        self.MinValue = MinValue
+        self.ConstantValue = ConstantValue
+        self.Ts = Ts  # should be in sec as per above
+        self.units = units
+        self.label = "Phase_Stimulation_Controller/%f%s" % (self.ConstantValue, self.units)
+
+        # Set output value
+        self.OutputValue = 0
+
+        # Lists for tracking controller history
+        self.state_history = []
+        self.error_history = []
+        self.output_history = []
+        self.sample_times = []
+
+
+    def clear(self):
+        """Clears current On-Off controller output value and history"""
+
+        self.last_error = 0.0
+
+        self.state_history = []
+        self.error_history = []
+        self.output_history = []
+        self.sample_times = []
+
+        self.OutputValue = 0.0
+
+
+    # From ConstantController  
     def update(self, state_value, current_time):
-        """Calculates controller output signal for given reference feedback
-
-        where:
-        u(t) = K_p (e(t) + (1/T_i)* \\int_{0}^{t} e(t)dt + T_d {de}/{dt})
-        where the error calculated is the tracking error (r(t) - y(t))
+        """Calculates biomarker for constant DBS value
+        u = self.ConstantValue
         """
 
-        # Calculate Error - if SetPoint > 0.0, then normalize error with
-        # respect to set point
+        # Calculate Error - if SetPoint > 0.0
+        # normalize error with respect to set point
         if self.SetPoint == 0.0:
             error = state_value - self.SetPoint
         else:
             error = (state_value - self.SetPoint) / self.SetPoint
 
-        # Converting from msec to sec
-        self.current_time = current_time / 1000.0
-        delta_time = self.Ts
-        delta_error = error - self.last_error
-
-        self.ITerm += error * delta_time
-
-        self.DTerm = 0.0
-        if delta_time > 0:
-            self.DTerm = delta_error / delta_time
-
-        # Remember last time and last error for next calculation
-        self.last_time = self.current_time
-        self.last_error = error
-
-        # Calculate u(t) - catch potential division by zero error
-        try:
-            u = self.Kp * (
-                error + ((1.0 / self.Ti) * self.ITerm) + (self.Td * self.DTerm)
-            )
-        except ZeroDivisionError:
-            u = self.Kp * (error + (0.0 * self.ITerm) + (self.Td * self.DTerm))
-
-        # Bound the controller output if necessary
-        # (between MinValue - MaxValue)
-        if u > self.MaxValue:
+        # Bound the controller output (between MinValue - MaxValue)
+        if self.ConstantValue > self.MaxValue:
             self.OutputValue = self.MaxValue
-            # Back-calculate the integral error
-            self.ITerm -= error * delta_time
-        elif u < self.MinValue:
+        elif self.ConstantValue < self.MinValue:
             self.OutputValue = self.MinValue
-            # Back-calculate the integral error
-            self.ITerm -= error * delta_time
         else:
-            self.OutputValue = u
+            self.OutputValue = self.ConstantValue
 
-        # Update the last output value
-        self.last_OutputValue = self.OutputValue
-
-        # Record state, error, y(t), and sample time values
+        # Record state, error and sample time values
         self.state_history.append(state_value)
         self.error_history.append(error)
         self.output_history.append(self.OutputValue)
         # Convert from msec to sec
         self.sample_times.append(current_time / 1000)
 
-        # Return controller output
         return self.OutputValue
-
+    
 
     def generate_dbs_signal(
         self,
@@ -252,9 +263,13 @@ class PhaseStimulationController:
             offset = 0                    # mA
         """
 
+        # IF these are indeed the times at which the controller is called give values that aer in the Matlab matrix instead 
+        # But it seems that dt is similar to TimeStep of simulation - not interval between controller calls
+        # dt is probably in seconds since to obtain tmp we devide by 1000.0
         times = np.round(np.arange(start_time, stop_time, dt), 2)
         tmp = np.arange(0, stop_time - start_time, dt) / 1000.0
 
+        # Seems that if the frequency parameter is set to 0 then there will be no stimulation (next stimulation never happens - dbs_signal is set to 0)
         if frequency == 0:
             dbs_signal = np.zeros(len(tmp))
             last_pulse_time = last_pulse_time_prior
@@ -285,6 +300,45 @@ class PhaseStimulationController:
 
         return dbs_signal, times, next_pulse_time, last_pulse_time
 
+    
+    # Delete the setters and getters that are not useful 
+    def setMaxValue(self, max_value):
+        """Sets the upper bound for the controller output"""
+        self.MaxValue = max_value
+
+    def setMinValue(self, min_value):
+        """Sets the lower bound for the controller output"""
+        self.MinValue = min_value
+
+    def setConstantValue(self, constant_value):
+        """Sets the constant controller output"""
+        self.ConstantValue = constant_value
+
+    def setTs(self, Ts):
+        """Sets the sampling rate of the controller"""
+        self.Ts = Ts
+
+    def setLabel(self, label):
+        """Sets the label of the controller"""
+        self.label = label
+
+    def setSetPoint(self, set_point):
+        self.SetPoint = set_point
+
+    def get_state_history(self):
+        return self.state_history
+
+    def get_error_history(self):
+        return self.error_history
+
+    def get_output_history(self):
+        return self.output_history
+
+    def get_sample_times(self):
+        return self.sample_times
+
+    def get_label(self):
+        return self.label
 
 class ConstantController:
     """Constant DBS Parameter Controller Class"""

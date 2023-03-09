@@ -45,7 +45,7 @@ from Controllers import (
     PhaseStimulationController
 )
 
-import neo.io
+import neo.iosim
 import quantities as pq
 import numpy as np
 import math
@@ -215,6 +215,8 @@ if __name__ == "__main__":
         controller_window_tail_length / rec_sampling_interval
     )
 
+    # Assuming that each time a stimulation is applied the controller must be called 
+    """
     controller_sampling_time = 20.0  # ms
     controller_start = (
         steady_state_duration + controller_window_length + controller_sampling_time
@@ -225,6 +227,17 @@ if __name__ == "__main__":
 
     if len(controller_call_times) == 0:
         controller_call_times = np.array([controller_start])
+    """
+
+    from mat4py import loadmat
+    # Will need to copy the file in the running docker containter
+    dic_stim_time_points = loadmat('phase_labsig.mat')
+    # Need to convert the dictionary to a list called stim_time_points -> need to get the stimulation points for 
+    # one stimulation phase at a time -> then think about iterating over all of the stimulation phase for a given
+    # stimulation amplitude
+    after_steady_state = [stim_time_point > steady_state_duration for stim_time_point in stim_time_points]
+    controller_call_times = stim_time_points[after_steady_state.index(True):]
+    
 
     # Initialize the Controller being used:
     # Controller sampling period, Ts, is in sec
@@ -269,7 +282,8 @@ if __name__ == "__main__":
         pulse_width=0.06,
         offset=0,
     )
-
+    
+    # not sure of the size of the DBS_Signal so it canbe con catenated in this way
     DBS_Signal = np.hstack((np.array([0, 0]), DBS_Signal))
     DBS_times = np.hstack((np.array([0, steady_state_duration + 10]), DBS_times))
 
