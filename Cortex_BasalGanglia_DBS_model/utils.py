@@ -51,6 +51,34 @@ def make_beta_cheby1_filter(fs, n, rp, low, high):
     return b, a
 
 
+def generate_dbs_pulses(start_time, stop_time, stim_time_points, dt, amplitude, pulse_width):
+
+    # need same units as the output from generate_dbs_signal - probably output DBS pulse in nA and time in ms
+    # dt = 0.01 ms
+    times = np.round(np.arange(0, stop_time - start_time, dt), 2) # ms 
+    DBS_signal = np.zeros(np.size(times))
+
+    # shifting the times of of stim_time_points (to have them relative the begining of stimulation)
+    stim_time_points = stim_time_points - start_time 
+    # we remove the times that go over 30s in running time (problem due to the extra sample
+    # when the controller is called -> for the first stimulation phase -> 17 last to discard)
+    #print("DEBUG: overlap", list(set(stim_time_points.tolist()) - set(times.tolist())))
+    #print("DEBUG: times[-50:]",times[-50:])
+    # get the time index for which the phase is reached
+    # do a shift of 30 µs in the past to know when to start stimulating
+    #print("DEBUG: stim_time_point last 50", stim_time_points[-50:])
+    # print("DEBUG: stim_time_point first 50 ", stim_time_points[:50])
+
+    stim_time_idx = [np.where(times == stim_time_point - pulse_width/2.0)[0][0] for stim_time_point in stim_time_points]
+    for idx in stim_time_idx:
+       DBS_signal[idx: idx + np.intc(pulse_width/dt)] = 1
+    
+    # if cathodic stimulation amplitude < 0 (we are interest in anodic stimulations)
+    DBS_signal *= amplitude
+
+    return DBS_signal, times
+
+
 def calculate_avg_beta_power(lfp_signal, tail_length, beta_b, beta_a):
     """Calculate the average power in the beta-band for the current LFP signal
     window, i.e. beta Average Rectified Value (ARV)

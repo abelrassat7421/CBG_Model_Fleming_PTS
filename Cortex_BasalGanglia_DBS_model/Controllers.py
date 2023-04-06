@@ -84,7 +84,7 @@ class ZeroController:
 
         # Return controller output
         return self.OutputValue
-
+        
     def generate_dbs_signal(
         self,
         start_time,
@@ -93,8 +93,8 @@ class ZeroController:
         amplitude,
         frequency,
         pulse_width,
-        offset,
-        last_pulse_time_prior=0,
+        offset, 
+        last_pulse_time_prior=0
     ):
         """Generate monophasic square-wave DBS signal
 
@@ -110,7 +110,7 @@ class ZeroController:
 
         times = np.round(np.arange(start_time, stop_time, dt), 2)
         tmp = np.arange(0, stop_time - start_time, dt) / 1000.0
-
+       
         if frequency == 0:
             dbs_signal = np.zeros(len(tmp))
             last_pulse_time = last_pulse_time_prior
@@ -239,17 +239,14 @@ class PhaseStimulationController:
 
         return self.OutputValue
     
-
+    
     def generate_dbs_signal(
         self,
         start_time,
         stop_time,
         dt,
         amplitude,
-        frequency,
         pulse_width,
-        offset,
-        last_pulse_time_prior=0,
     ):
         """Generate monophasic square-wave DBS signal
 
@@ -263,13 +260,13 @@ class PhaseStimulationController:
             offset = 0                    # mA
         """
 
-        # IF these are indeed the times at which the controller is called give values that aer in the Matlab matrix instead 
+        # If these are indeed the times at which the controller is called give values that are in the Matlab matrix instead 
         # But it seems that dt is similar to TimeStep of simulation - not interval between controller calls
         # dt is probably in seconds since to obtain tmp we devide by 1000.0
         times = np.round(np.arange(start_time, stop_time, dt), 2)
         tmp = np.arange(0, stop_time - start_time, dt) / 1000.0
-
-        # Seems that if the frequency parameter is set to 0 then there will be no stimulation (next stimulation never happens - dbs_signal is set to 0)
+       
+        """
         if frequency == 0:
             dbs_signal = np.zeros(len(tmp))
             last_pulse_time = last_pulse_time_prior
@@ -297,9 +294,9 @@ class PhaseStimulationController:
 
             # Rescale amplitude
             dbs_signal *= amplitude
-
-        return dbs_signal, times, next_pulse_time, last_pulse_time
-
+        """
+        # no errors for now 
+        return times
     
     # Delete the setters and getters that are not useful 
     def setMaxValue(self, max_value):
@@ -1212,8 +1209,8 @@ class IterativeFeedbackTuningPIController:
             offset = 0                    # mA
         """
 
-        times = np.round(np.arange(start_time, stop_time, dt), 2)
-        tmp = np.arange(0, stop_time - start_time, dt) / 1000.0
+        times = np.round(np.arange(start_time, stop_time, dt), 2) # absolute time in ms ].
+        tmp = np.arange(0, stop_time - start_time, dt) / 1000.0 # time relative to start_time in seconds
 
         if frequency == 0:
             dbs_signal = np.zeros(len(tmp))
