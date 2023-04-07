@@ -7,6 +7,14 @@ zero_schema = dict(
     Ts={"type": "float", "coerce": float},
 )
 
+pts_schema = dict(
+    SetPoint={"type": "float", "coerce": float},
+    Ts={"type": "float", "coerce": float},
+    ConstantValue={"type": "float", "coerce": float},
+    MinValue={"type": "float", "coerce": float},
+    MaxValue={"type": "float", "coerce": float},
+)
+
 pid_schema = dict(
     SetPoint={"type": "float", "coerce": float},
     Kp={"type": "float", "coerce": float},
@@ -38,7 +46,7 @@ class Config(object):
             "type": "string",
             "coerce": (str, lambda x: x.upper()),
             "default": "ZERO",
-            "allowed": ("ZERO", "PID", "IFT"),
+            "allowed": ("ZERO", "PTS", "PID", "IFT"),
         },
         Modulation={
             "type": "string",
@@ -49,7 +57,7 @@ class Config(object):
         RandomSeed={"type": "integer", "coerce": int, "default": 3695},
         TimeStep={"type": "float", "coerce": float, "default": 0.01},
         SteadyStateDuration={"type": "float", "coerce": float, "default": 6000.0},
-        RunTime={"type": "float", "coerce": float, "default": 32000.0},
+        RunTime={"type": "float", "coerce": float, "default": 30000.0},
         SetPoint={"type": "float", "coerce": float, "default": 0},
         beta_burst_modulation_scale={"type": "float", "coerce": float, "default": 0.02},
         modulation_offset={"type": "float", "coerce": float, "default": 0},
@@ -99,6 +107,8 @@ def get_controller_kwargs(config):
         schema = pid_schema
     elif controller == "IFT":
         schema = ift_schema
+    elif controller == "PTS":
+        schema = pts_schema
     else:
         raise RuntimeError("Invalid controller type")
 

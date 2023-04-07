@@ -2,11 +2,11 @@
 # Simulation
 Controller: Zero
 RunTime: 3500
-RandomSeed: 8001
+RandomSeed: 3695
 SteadyStateDuration: 500
 
 # Controller
 SetPoint: 0
 Ts: 0
-save_stn_voltage: yes
+save_stn_voltage: true
 beta_burst_modulation_scale: 0.02
