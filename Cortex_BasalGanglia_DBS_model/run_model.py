@@ -166,15 +166,14 @@ if __name__ == "__main__":
     stimulating_electrode_position = np.array([0, 0, 250])
 
     (
-        STN_recording_electrode_1_distances,
-        STN_recording_electrode_2_distances,
+        Cortical_recording_electrode_1_distances,
+        Cortical_recording_electrode_2_distances,
         Cortical_Collateral_stimulating_electrode_distances,
     ) = electrode_distance(
         recording_electrode_1_position,
         recording_electrode_2_position,
-        STN_Pop,
-        stimulating_electrode_position,
         Cortical_Pop,
+        stimulating_electrode_position,
     )
 
     # Conductivity and resistivity values for homogenous, isotropic medium

@@ -465,6 +465,7 @@ def load_network(
     for ii, cell in enumerate(Cortical_Pop):
         cell.position[0] = Cortical_Neuron_x_Positions[ii]
         cell.position[1] = Cortical_Neuron_y_Positions[ii]
+        cell.position[2] = 50000
 
     # Load STN positions - Comment/Remove to generate new positions
     STN_Neuron_xy_Positions = np.loadtxt("STN_xy_pos.txt", delimiter=",")
@@ -635,17 +636,16 @@ def load_network(
 def electrode_distance(
     recording_electrode_1_position,
     recording_electrode_2_position,
-    STN_Pop,
-    stimulating_electrode_position,
     Cortical_Pop,
+    stimulating_electrode_position,
 ):
-    # Calculate STN cell distances to each recording electrode
+    # Calculate Cortical cell distances to each recording electrode
     # using only xy coordinates for distance calculations
-    STN_recording_electrode_1_distances = distances_to_electrode(
-        recording_electrode_1_position, STN_Pop
+    Cortical_recording_electrode_1_distances = distances_to_electrode(
+        recording_electrode_1_position, Cortical_Pop
     )
-    STN_recording_electrode_2_distances = distances_to_electrode(
-        recording_electrode_2_position, STN_Pop
+    Cortical_recording_electrode_2_distances = distances_to_electrode(
+        recording_electrode_2_position, Cortical_Pop
     )
 
     # Calculate Cortical Collateral distances from the stimulating electrode -
@@ -658,7 +658,7 @@ def electrode_distance(
     )
 
     return (
-        STN_recording_electrode_1_distances,
-        STN_recording_electrode_2_distances,
+        Cortical_recording_electrode_1_distances,
+        Cortical_recording_electrode_2_distances,
         Cortical_Collateral_stimulating_electrode_distances,
     )

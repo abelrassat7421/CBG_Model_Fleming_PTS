@@ -157,30 +157,31 @@ if __name__ == "__main__":
         # Define state variables to record from each population
         Cortical_Pop.record("soma(0.5).v", sampling_interval=rec_sampling_interval)
         Cortical_Pop.record("collateral(0.5).v", sampling_interval=rec_sampling_interval)
+        Cortical_Pop.record("AMPA.i", sampling_interval=rec_sampling_interval)
+        Cortical_Pop.record("GABAa.i", sampling_interval=rec_sampling_interval)
         Interneuron_Pop.record("soma(0.5).v", sampling_interval=rec_sampling_interval)
         STN_Pop.record("soma(0.5).v", sampling_interval=rec_sampling_interval)
-        STN_Pop.record("AMPA.i", sampling_interval=rec_sampling_interval)
-        STN_Pop.record("GABAa.i", sampling_interval=rec_sampling_interval)
+        #STN_Pop.record("AMPA.i", sampling_interval=rec_sampling_interval)
+        #STN_Pop.record("GABAa.i", sampling_interval=rec_sampling_interval)
         Striatal_Pop.record("spikes")
         GPe_Pop.record("soma(0.5).v", sampling_interval=rec_sampling_interval)
         GPi_Pop.record("soma(0.5).v", sampling_interval=rec_sampling_interval)
         Thalamic_Pop.record("soma(0.5).v", sampling_interval=rec_sampling_interval)
 
         # Assign Positions for recording and stimulating electrode point sources
-        recording_electrode_1_position = np.array([0, -1500, 250])
-        recording_electrode_2_position = np.array([0, 1500, 250])
+        recording_electrode_1_position = np.array([0, -1750, 10000])
+        recording_electrode_2_position = np.array([0, 1750, 10000])
         stimulating_electrode_position = np.array([0, 0, 250])
 
         (
-            STN_recording_electrode_1_distances,
-            STN_recording_electrode_2_distances,
+            Cortical_recording_electrode_1_distances,
+            Cortical_recording_electrode_2_distances,
             Cortical_Collateral_stimulating_electrode_distances,
         ) = electrode_distance(
             recording_electrode_1_position,
             recording_electrode_2_position,
-            STN_Pop,
-            stimulating_electrode_position,
             Cortical_Pop,
+            stimulating_electrode_position,
         )
 
         # Conductivity and resistivity values for homogenous, isotropic medium
@@ -233,53 +234,16 @@ if __name__ == "__main__":
         if len(controller_call_times) == 0:
             controller_call_times = np.array([controller_start])
 
+        # Loading the stimulation timepoints for 12 different phases 
         mat_dic = sio.loadmat('phase_t.mat') 
-        #print(mat_dic['phase_t'].shape)
-        
         # the third index must be changed to iterate over all of the stimulation phases
-        
-
         stim_points = mat_dic['phase_t'][phase][0]
         stim_time_points = stim_points*rec_sampling_interval # convert the points into time points in ms 
-        #print("DEBUG: print(stim_points.shape)", stim_time_points.shape)
-        #print("DEBUG: print(stim_points[150:200])", stim_time_points[150:200])
-
-        
-        # after_steady_state = np.array([stim_time_point > steady_state_duration + 10 + simulator.state.dt for stim_time_point in stim_time_points])
-        # trying without + 10 + simulator.state.dt
         after_steady_state = np.array([stim_time_point > steady_state_duration for stim_time_point in stim_time_points])
         call_times = stim_time_points[after_steady_state]
-        #print("DEBUG: print(call_times.shape)", call_times.shape)
-        #print("DEBUG: print(call_times[0])", call_times[0])
-        # print content of call_times if unexpected sizes
         
-
-        # Comment when testing with smaller runtime 
-
-        # delete the slicing of stim_time_points once the issue of extra samples at controller calls
-        # is solved
-        # all call_times should be with a decimal of either .5 or .0    
-        # print("DEBUG: before print(call_times[-25:])", call_times[-25:])
         call_times = np.round(call_times, 1) 
-        #call_times[-1] = sim_total_time
-        # print("DEBUG: after print(call_times[-25:])", call_times[-25:])
-        # print("DEBUG: after print(call_times.shape)", call_times.shape)
-        #print("DEBUG: print(sim_total_time)", sim_total_time)
-
-        
-        # Comment when testing with longer runtime 
-
-        #call_times = np.around(call_times[:94], decimals=1)
-        # print("DEBUG: after print(call_times[-25:])", call_times[-25:])
-        # print("DEBUG: after print(call_times[:25])", call_times[:25])
-        # Since it seems that the STN_LFP is recorded until the last controller call append last time of the simulation 
-        #call_times[-1] = sim_total_time
-        # print("DEBUG: print(sim_total_time)", sim_total_time
-
-
-        # Initialize the Controller being used:
-        # Controller sampling period, Ts, is in sec
-        # For our PTS stimulation we select ZERO
+       
         if controller_type == "ZERO":
             Controller = ZeroController
         elif controller_type == "PID":
@@ -351,7 +315,6 @@ if __name__ == "__main__":
                 (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
             )
 
-
             # Neuron vector of GPe DBS signals
             GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
             GPe_DBS_times_neuron.append(h.Vector(GPe_DBS_times))
@@ -366,9 +329,9 @@ if __name__ == "__main__":
             updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[i].as_numpy())
 
         # Initialise STN LFP list
-        STN_LFP = []
-        STN_LFP_AMPA = []
-        STN_LFP_GABAa = []
+        Cortical_LFP = []
+        Cortical_LFP_AMPA = []
+        Cortical_LFP_GABAa = []
 
         # Variables for writing simulation data
         last_write_time = steady_state_duration
@@ -396,128 +359,101 @@ if __name__ == "__main__":
             print("Controller Called at t: %.2f" % simulator.state.t)
 
         # Calculate the LFP and biomarkers, etc.
-        STN_AMPA_i = np.array(
-            STN_Pop.get_data("AMPA.i", gather=False).segments[0].analogsignals[0]
+        Cortical_AMPA_i = np.array(
+            Cortical_Pop.get_data("AMPA.i", gather=False).segments[0].analogsignals[0]
         )
-        STN_GABAa_i = np.array(
-            STN_Pop.get_data("GABAa.i", gather=False).segments[0].analogsignals[0]
+        Cortical_GABAa_i = np.array(
+            Cortical_Pop.get_data("GABAa.i", gather=False).segments[0].analogsignals[0]
         )
-        STN_Syn_i = STN_AMPA_i + STN_GABAa_i
+        Cortical_Syn_i = Cortical_AMPA_i + Cortical_GABAa_i
 
-
-        """
-        print("DEBUG STN_AMPA_i:", STN_AMPA_i.shape)
-        print("DEBUG STN_AMPA_i[0]:", STN_AMPA_i.shape[0])
-        #print("DEBUG STN_GABAa_i:", STN_GABAa_i.shape)
-        print("DEBUG STN_AMPA_i[0][0]", STN_AMPA_i[0][0])
-        print("DEBUG STN_AMPA_i[0]", STN_AMPA_i[:,0])
-        #print("DEBUG STN_GABAa_i[0] at t: %.2f:" % simulator.state.t, STN_GABAa_i[0][0])
-        print("DEBUG STN_AMPA_i[-1][0]", STN_AMPA_i[-1][0])
-        #print("DEBUG STN_GABAa_i[-1] at t: %.2f :" % simulator.state.t, STN_GABAa_i[0][-1])
-        print("DEBUG STN_Pop:", type(STN_Pop))
-        """
-
-        # Computing the STN_LFP recorded by the two point of the electrode and doing some sort of average perhpas
-        # STN LFP Calculation - Syn_i is in units of nA -> LFP units are mV
-        STN_LFP_1 = (
+        # Computing the Cortical_LFP recorded by the two point of the electrode and doing some sort of average perhpas
+        # Cortical LFP Calculation - Syn_i is in units of nA -> LFP units are mV
+        Cortical_LFP_1 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
-                (1 / (STN_recording_electrode_1_distances * 1e-6))
-                * STN_Syn_i.transpose(),
+                (1 / (Cortical_recording_electrode_1_distances * 1e-6))
+                * Cortical_Syn_i.transpose(),
                 axis=0,
             )
             * 1e-6
         )
         
-        #print("DEBUG STN_recording_electrode_1_distances:", STN_recording_electrode_1_distances.shape)
-        #print("DEBUG STN_Syn_i:", STN_Syn_i.shape)
 
-
-        STN_LFP_2 = (
+        Cortical_LFP_2 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
-                (1 / (STN_recording_electrode_2_distances * 1e-6))
-                * STN_Syn_i.transpose(),
+                (1 / (Cortical_recording_electrode_2_distances * 1e-6))
+                * Cortical_Syn_i.transpose(),
                 axis=0,
             )
             * 1e-6
         )
-        #print("DEBUG STN_recording_electrode_2_distances:", STN_recording_electrode_2_distances.shape)
 
-
-        # print("DEBUG STN_LFP_1:", len(STN_LFP_1))
-        # print("DEBUG STN_LFP_2:", len(STN_LFP_2))
-
-        STN_LFP = np.hstack(
-            (STN_LFP, comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM))
+        Cortical_LFP = np.hstack(
+            (Cortical_LFP, comm.allreduce(Cortical_LFP_1 - Cortical_LFP_2, op=MPI.SUM))
         )
 
-        #print("DEBUG STN_LFP_2:", type(comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM)), len(comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM)))
-
-        # STN LFP AMPA and GABAa Contributions
-        STN_LFP_AMPA_1 = (
+        # Cortical LFP AMPA and GABAa Contributions
+        Cortical_LFP_AMPA_1 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
-                (1 / (STN_recording_electrode_1_distances * 1e-6))
-                * STN_AMPA_i.transpose(),
+                (1 / (Cortical_recording_electrode_1_distances * 1e-6))
+                * Cortical_AMPA_i.transpose(),
                 axis=0,
             )
             * 1e-6
         )
-        STN_LFP_AMPA_2 = (
+        Cortical_LFP_AMPA_2 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
-                (1 / (STN_recording_electrode_2_distances * 1e-6))
-                * STN_AMPA_i.transpose(),
+                (1 / (Cortical_recording_electrode_2_distances * 1e-6))
+                * Cortical_AMPA_i.transpose(),
                 axis=0,
             )
             * 1e-6
         )
-        STN_LFP_AMPA = np.hstack(
-            (STN_LFP_AMPA, comm.allreduce(STN_LFP_AMPA_1 - STN_LFP_AMPA_2, op=MPI.SUM))
+        Cortical_LFP_AMPA = np.hstack(
+            (Cortical_LFP_AMPA, comm.allreduce(Cortical_LFP_AMPA_1 - Cortical_LFP_AMPA_2, op=MPI.SUM))
         )
 
-        STN_LFP_GABAa_1 = (
+        Cortical_LFP_GABAa_1 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
-                (1 / (STN_recording_electrode_1_distances * 1e-6))
-                * STN_GABAa_i.transpose(),
+                (1 / (Cortical_recording_electrode_1_distances * 1e-6))
+                * Cortical_GABAa_i.transpose(),
                 axis=0,
             )
             * 1e-6
         )
-        STN_LFP_GABAa_2 = (
+        Cortical_LFP_GABAa_2 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
-                (1 / (STN_recording_electrode_2_distances * 1e-6))
-                * STN_GABAa_i.transpose(),
+                (1 / (Cortical_recording_electrode_2_distances * 1e-6))
+                * Cortical_GABAa_i.transpose(),
                 axis=0,
             )
             * 1e-6
         )
-        STN_LFP_GABAa = np.hstack(
+        Cortical_LFP_GABAa = np.hstack(
             (
-                STN_LFP_GABAa,
-                comm.allreduce(STN_LFP_GABAa_1 - STN_LFP_GABAa_2, op=MPI.SUM),
+                Cortical_LFP_GABAa,
+                comm.allreduce(Cortical_LFP_GABAa_1 - Cortical_LFP_GABAa_2, op=MPI.SUM),
             )
         )
 
-        # Min Jae isn't interested in this for the time being
+        # Min Jae isn't interested beta wave ARV for the moment
         """
         # Biomarker Calculation:
         lfp_beta_average_value = calculate_avg_beta_power(
-            lfp_signal=STN_LFP[-controller_window_length_no_samples:],
+            lfp_signal=Cortical_LFP[-controller_window_length_no_samples:],
             tail_length=controller_window_tail_length_no_samples,
             beta_b=beta_b,
             beta_a=beta_a,
         )
-        print("DEBUG len(STN_LFP):", len(STN_LFP))
-        print("DEBUG simulator.state.t:", simulator.state.t)
-
 
         if rank == 0:
             print("Beta Average: %f" % lfp_beta_average_value)
-
         """ 
 
         # Write population data to file
@@ -527,20 +463,19 @@ if __name__ == "__main__":
             write_index = "{:.0f}_".format(0)
             suffix = "_{:.0f}ms-{:.0f}ms".format(
                 last_write_time, simulator.state.t)
-            fname = write_index + "STN_Soma_v" + suffix + ".mat"
+            fname = write_index + "Cortical_Soma_v" + suffix + ".mat"
             dir_suffix = "_{:.1f}mA-{:.0f}deg".format(
                 amplitude, phase*360/12)
-            dir_name = "STN_POP" + dir_suffix 
+            dir_name = "Cortical_POP" + dir_suffix 
             # testing without clear=True to check if we still have extra samples 
-            STN_Pop.write_data(
+            Cortical_Pop.write_data(
                 str(simulation_output_dir / dir_name / fname),
                 "soma(0.5).v", clear=True
             )
         else:
-            STN_Pop.get_data("soma(0.5).v", clear=True)
+            Cortical_Pop.get_data("soma(0.5).v", clear=True)
 
         last_write_time = simulator.state.t
-
 
         # Write population membrane voltage data to file
         if c.save_ctx_voltage:
@@ -553,46 +488,24 @@ if __name__ == "__main__":
 
         suffix = "_{:.1f}mA-{:.1f}deg".format(amplitude, phase*360/12)
 
-        # Write controller values to csv files
-        controller_measured_beta_values = np.asarray(controller.state_history)
-        controller_measured_error_values = np.asarray(controller.error_history)
-        controller_output_values = np.asarray(controller.output_history)
-        controller_sample_times = np.asarray(controller.sample_times)
-        try:
-            controller_reference_history = np.asarray(controller.reference_history)
-        except AttributeError:
-            controller_reference_history = None
-        try:
-            controller_iteration_history = np.asarray(controller.iteration_history)
-        except AttributeError:
-            controller_iteration_history = None
-        try:
-            controller_parameter_history = np.asarray(controller.parameter_history)
-        except AttributeError:
-            controller_parameter_history = None
-        try:
-            controller_integral_term_history = np.asarray(controller.integral_term_history)
-        except AttributeError:
-            controller_integral_term_history = None
-
-        # Write the STN LFP to .mat file
-        STN_LFP_Block = neo.Block(name="STN_LFP")
-        STN_LFP_seg = neo.Segment(name="segment_0")
-        STN_LFP_Block.segments.append(STN_LFP_seg)
-        STN_LFP_signal = neo.AnalogSignal(
-            STN_LFP,
+        # Write the Cortical LFP to .mat file
+        Cortical_LFP_Block = neo.Block(name="Cortical_LFP")
+        Cortical_LFP_seg = neo.Segment(name="segment_0")
+        Cortical_LFP_Block.segments.append(Cortical_LFP_seg)
+        Cortical_LFP_signal = neo.AnalogSignal(
+            Cortical_LFP,
             units="mV",
             t_start=0 * pq.ms,
             sampling_rate=pq.Quantity(1.0 / rec_sampling_interval, "1/ms"),
         )
-        STN_LFP_seg.analogsignals.append(STN_LFP_signal)
+        Cortical_LFP_seg.analogsignals.append(Cortical_LFP_signal)
 
-        print("DEBUG final STN_LFP len:", len(STN_LFP))
+        print("DEBUG final Cortical_LFP len:", len(Cortical_LFP))
         print("DEBUG simulator.state.t:", simulator.state.t)
 
-        fname = "STN_LFP" + suffix +  ".mat"
+        fname = "Cortical_LFP" + suffix +  ".mat"
         w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / fname))
-        w.write_block(STN_LFP_Block)
+        w.write_block(Cortical_LFP_Block)
 
         # Write the DBS Signal to .mat file
         # DBS Amplitude
@@ -626,8 +539,8 @@ if __name__ == "__main__":
 
     # Defining the list of amplitudes and phases we want to stimulate for
     amplitudes = np.arange(4, 5, 1)
-    # 0 and 5 corresond respectively to stimulating at the peaks and at the trough
-    phases = np.arange(11, 12, 1)
+    # 0 and 6 correspond respectively to stimulating at the peaks and at the trough
+    phases = np.arange(6, 7, 1)
 
     # Iterate over different stimulation amplitudes
     for amplitude in amplitudes:  

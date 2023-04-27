@@ -19,7 +19,6 @@ RUN apt-get -y install openmpi-bin=3.1.3-11
 RUN pip3 install mpi4py==3.1.4
 RUN apt-get -y install time
 RUN pip3 install mat4py
-RUN pip3 install debugpy cerberus
 
 RUN pip install ptvsd
 
@@ -32,7 +31,7 @@ COPY ./Cortex_BasalGanglia_DBS_model/*.mod ./
 COPY ./Cortex_BasalGanglia_DBS_model/*.o ./
 COPY ./Cortex_BasalGanglia_DBS_model/*.html ./
 COPY ./Cortex_BasalGanglia_DBS_model/phase_t.mat ./
-RUN nrnivmodl
+RUN nrnivmodlc
 
 COPY ./Cortex_BasalGanglia_DBS_model/*.py ./
 COPY ./Cortex_BasalGanglia_DBS_model/*.npy ./
