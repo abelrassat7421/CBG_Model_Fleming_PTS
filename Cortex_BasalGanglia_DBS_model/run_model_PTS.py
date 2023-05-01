@@ -209,6 +209,7 @@ if __name__ == "__main__":
         for ii, cell in enumerate(Cortical_Pop):
             cell.collateral_rx = collateral_rx_seq[ii]
 
+        """
         # Create times for when the DBS controller will be called
         # Window length for filtering biomarker
         controller_window_length = 2000.0  # ms
@@ -233,17 +234,17 @@ if __name__ == "__main__":
 
         if len(controller_call_times) == 0:
             controller_call_times = np.array([controller_start])
+        """
 
         # Loading the stimulation timepoints for 12 different phases 
         mat_dic = sio.loadmat('phase_t.mat') 
-        # the third index must be changed to iterate over all of the stimulation phases
         stim_points = mat_dic['phase_t'][phase][0]
         stim_time_points = stim_points*rec_sampling_interval # convert the points into time points in ms 
         after_steady_state = np.array([stim_time_point > steady_state_duration for stim_time_point in stim_time_points])
         call_times = stim_time_points[after_steady_state]
         
         call_times = np.round(call_times, 1) 
-       
+        
         if controller_type == "ZERO":
             Controller = ZeroController
         elif controller_type == "PID":
@@ -255,7 +256,6 @@ if __name__ == "__main__":
 
         controller_kwargs = get_controller_kwargs(c)
         controller = Controller(**controller_kwargs)
-
 
         # Generate a square wave which represents the DBS signal
         # Needs to be initialized to zero when unused to prevent
@@ -296,7 +296,7 @@ if __name__ == "__main__":
         GPe_DBS_times_neuron = []
         updated_GPe_DBS_signal = []
         for i in range(0, Cortical_Pop.local_size):
-
+            
             print("GPe neuron", i)
 
             (
@@ -306,7 +306,7 @@ if __name__ == "__main__":
                 stop_time=sim_total_time,
                 stim_time_points=call_times,
                 dt=simulator.state.dt,
-                amplitude=np.interp(amplitude, interp_DBS_amplitudes, interp_collaterals_entrained), 
+                amplitude=100, 
                 pulse_width=0.06,        
             )
 
@@ -314,6 +314,9 @@ if __name__ == "__main__":
             GPe_DBS_times = np.hstack(
                 (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
             )
+
+            # Set the GPe DBS signals to zero amplitude
+            GPe_DBS_Signal[0:] = 0
 
             # Neuron vector of GPe DBS signals
             GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
@@ -327,6 +330,52 @@ if __name__ == "__main__":
             # Hold a reference to the signal as a numpy array, and append to list
             # of GPe stimulation signals
             updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[i].as_numpy())
+
+        # DBS GPe neuron stimulation
+        num_GPe_Neurons_entrained = int(
+            np.interp(
+                amplitude, interp_DBS_amplitudes, interp_collaterals_entrained
+            )
+        )
+        # Stimulate the entrained GPe neurons
+        for j in np.arange(0, num_GPe_Neurons_entrained):
+            cellid = Cortical_Pop[GPe_stimulation_order[j]]
+
+            if Cortical_Pop.is_local(cellid):
+                index = Cortical_Pop.id_to_local_index(cellid)
+
+                print("stimulated GPe neuron", j,'', index)
+
+                (
+                    GPe_DBS_Signal, 
+                    GPe_DBS_times
+                ) = generate_dbs_pulses(steady_state_duration,
+                    stop_time=sim_total_time,
+                    stim_time_points=call_times,
+                    dt=simulator.state.dt,
+                    amplitude=100, 
+                    pulse_width=0.06,        
+                )
+
+                """
+                GPe_DBS_Signal = np.hstack((np.array([0, 0]), GPe_DBS_Signal))
+                GPe_DBS_times = np.hstack(
+                    (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
+                )
+
+                # Neuron vector of GPe DBS signals
+                GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
+                GPe_DBS_times_neuron.append(h.Vector(GPe_DBS_times))
+                """
+
+                # Play the stimulation into each GPe neuron
+                GPe_DBS_Signal_neuron[index].play(
+                    GV.GPe_stimulation_iclamps[index]._ref_amp, GPe_DBS_times_neuron[index], 1
+                )
+
+                # Hold a reference to the signal as a numpy array, and append to list
+                # of GPe stimulation signals
+                updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[index].as_numpy())
 
         # Initialise STN LFP list
         Cortical_LFP = []
@@ -354,7 +403,6 @@ if __name__ == "__main__":
         
         run_until(sim_total_time - simulator.state.dt)
 
-        # print("DEBUG:call_index, call_time:", call_index, call_time)
         if rank == 0:
             print("Controller Called at t: %.2f" % simulator.state.t)
 
@@ -379,8 +427,7 @@ if __name__ == "__main__":
             * 1e-6
         )
         
-
-        Cortical_LFP_2 = (
+        STN_LFP_2 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
                 (1 / (Cortical_recording_electrode_2_distances * 1e-6))
@@ -390,12 +437,12 @@ if __name__ == "__main__":
             * 1e-6
         )
 
-        Cortical_LFP = np.hstack(
-            (Cortical_LFP, comm.allreduce(Cortical_LFP_1 - Cortical_LFP_2, op=MPI.SUM))
+        STN_LFP = np.hstack(
+            (STN_LFP, comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM))
         )
 
-        # Cortical LFP AMPA and GABAa Contributions
-        Cortical_LFP_AMPA_1 = (
+        # STN LFP AMPA and GABAa Contributions
+        STN_LFP_AMPA_1 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
                 (1 / (Cortical_recording_electrode_1_distances * 1e-6))
@@ -488,12 +535,12 @@ if __name__ == "__main__":
 
         suffix = "_{:.1f}mA-{:.1f}deg".format(amplitude, phase*360/12)
 
-        # Write the Cortical LFP to .mat file
-        Cortical_LFP_Block = neo.Block(name="Cortical_LFP")
-        Cortical_LFP_seg = neo.Segment(name="segment_0")
-        Cortical_LFP_Block.segments.append(Cortical_LFP_seg)
-        Cortical_LFP_signal = neo.AnalogSignal(
-            Cortical_LFP,
+        # Write the STN LFP to .mat file
+        STN_LFP_Block = neo.Block(name="STN_LFP")
+        STN_LFP_seg = neo.Segment(name="segment_0")
+        STN_LFP_Block.segments.append(STN_LFP_seg)
+        STN_LFP_signal = neo.AnalogSignal(
+            STN_LFP,
             units="mV",
             t_start=0 * pq.ms,
             sampling_rate=pq.Quantity(1.0 / rec_sampling_interval, "1/ms"),
@@ -536,11 +583,10 @@ if __name__ == "__main__":
         
         reset()
 
-
     # Defining the list of amplitudes and phases we want to stimulate for
     amplitudes = np.arange(4, 5, 1)
-    # 0 and 6 correspond respectively to stimulating at the peaks and at the trough
-    phases = np.arange(6, 7, 1)
+    # 0 and 5 corresond respectively to stimulating at the peaks and at the trough
+    phases = np.arange(0, 1, 1)
 
     # Iterate over different stimulation amplitudes
     for amplitude in amplitudes:  
