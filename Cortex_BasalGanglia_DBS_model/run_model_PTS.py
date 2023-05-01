@@ -208,6 +208,7 @@ if __name__ == "__main__":
         for ii, cell in enumerate(Cortical_Pop):
             cell.collateral_rx = collateral_rx_seq[ii]
 
+        """
         # Create times for when the DBS controller will be called
         # Window length for filtering biomarker
         controller_window_length = 2000.0  # ms
@@ -232,54 +233,16 @@ if __name__ == "__main__":
 
         if len(controller_call_times) == 0:
             controller_call_times = np.array([controller_start])
+        """
 
         mat_dic = sio.loadmat('phase_t.mat') 
-        #print(mat_dic['phase_t'].shape)
-        
-        # the third index must be changed to iterate over all of the stimulation phases
-        
-
         stim_points = mat_dic['phase_t'][phase][0]
         stim_time_points = stim_points*rec_sampling_interval # convert the points into time points in ms 
-        #print("DEBUG: print(stim_points.shape)", stim_time_points.shape)
-        #print("DEBUG: print(stim_points[150:200])", stim_time_points[150:200])
-
-        
-        # after_steady_state = np.array([stim_time_point > steady_state_duration + 10 + simulator.state.dt for stim_time_point in stim_time_points])
-        # trying without + 10 + simulator.state.dt
         after_steady_state = np.array([stim_time_point > steady_state_duration for stim_time_point in stim_time_points])
         call_times = stim_time_points[after_steady_state]
-        #print("DEBUG: print(call_times.shape)", call_times.shape)
-        #print("DEBUG: print(call_times[0])", call_times[0])
-        # print content of call_times if unexpected sizes
         
-
-        # Comment when testing with smaller runtime 
-
-        # delete the slicing of stim_time_points once the issue of extra samples at controller calls
-        # is solved
-        # all call_times should be with a decimal of either .5 or .0    
-        # print("DEBUG: before print(call_times[-25:])", call_times[-25:])
         call_times = np.round(call_times, 1) 
-        #call_times[-1] = sim_total_time
-        # print("DEBUG: after print(call_times[-25:])", call_times[-25:])
-        # print("DEBUG: after print(call_times.shape)", call_times.shape)
-        #print("DEBUG: print(sim_total_time)", sim_total_time)
-
         
-        # Comment when testing with longer runtime 
-
-        #call_times = np.around(call_times[:94], decimals=1)
-        # print("DEBUG: after print(call_times[-25:])", call_times[-25:])
-        # print("DEBUG: after print(call_times[:25])", call_times[:25])
-        # Since it seems that the STN_LFP is recorded until the last controller call append last time of the simulation 
-        #call_times[-1] = sim_total_time
-        # print("DEBUG: print(sim_total_time)", sim_total_time
-
-
-        # Initialize the Controller being used:
-        # Controller sampling period, Ts, is in sec
-        # For our PTS stimulation we select ZERO
         if controller_type == "ZERO":
             Controller = ZeroController
         elif controller_type == "PID":
@@ -291,7 +254,6 @@ if __name__ == "__main__":
 
         controller_kwargs = get_controller_kwargs(c)
         controller = Controller(**controller_kwargs)
-
 
         # Generate a square wave which represents the DBS signal
         # Needs to be initialized to zero when unused to prevent
@@ -332,7 +294,7 @@ if __name__ == "__main__":
         GPe_DBS_times_neuron = []
         updated_GPe_DBS_signal = []
         for i in range(0, Cortical_Pop.local_size):
-
+            
             print("GPe neuron", i)
 
             (
@@ -342,7 +304,7 @@ if __name__ == "__main__":
                 stop_time=sim_total_time,
                 stim_time_points=call_times,
                 dt=simulator.state.dt,
-                amplitude=np.interp(amplitude, interp_DBS_amplitudes, interp_collaterals_entrained), 
+                amplitude=100, 
                 pulse_width=0.06,        
             )
 
@@ -351,6 +313,8 @@ if __name__ == "__main__":
                 (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
             )
 
+            # Set the GPe DBS signals to zero amplitude
+            GPe_DBS_Signal[0:] = 0
 
             # Neuron vector of GPe DBS signals
             GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
@@ -364,6 +328,52 @@ if __name__ == "__main__":
             # Hold a reference to the signal as a numpy array, and append to list
             # of GPe stimulation signals
             updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[i].as_numpy())
+
+        # DBS GPe neuron stimulation
+        num_GPe_Neurons_entrained = int(
+            np.interp(
+                amplitude, interp_DBS_amplitudes, interp_collaterals_entrained
+            )
+        )
+        # Stimulate the entrained GPe neurons
+        for j in np.arange(0, num_GPe_Neurons_entrained):
+            cellid = Cortical_Pop[GPe_stimulation_order[j]]
+
+            if Cortical_Pop.is_local(cellid):
+                index = Cortical_Pop.id_to_local_index(cellid)
+
+                print("stimulated GPe neuron", j,'', index)
+
+                (
+                    GPe_DBS_Signal, 
+                    GPe_DBS_times
+                ) = generate_dbs_pulses(steady_state_duration,
+                    stop_time=sim_total_time,
+                    stim_time_points=call_times,
+                    dt=simulator.state.dt,
+                    amplitude=100, 
+                    pulse_width=0.06,        
+                )
+
+                """
+                GPe_DBS_Signal = np.hstack((np.array([0, 0]), GPe_DBS_Signal))
+                GPe_DBS_times = np.hstack(
+                    (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
+                )
+
+                # Neuron vector of GPe DBS signals
+                GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
+                GPe_DBS_times_neuron.append(h.Vector(GPe_DBS_times))
+                """
+
+                # Play the stimulation into each GPe neuron
+                GPe_DBS_Signal_neuron[index].play(
+                    GV.GPe_stimulation_iclamps[index]._ref_amp, GPe_DBS_times_neuron[index], 1
+                )
+
+                # Hold a reference to the signal as a numpy array, and append to list
+                # of GPe stimulation signals
+                updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[index].as_numpy())
 
         # Initialise STN LFP list
         STN_LFP = []
@@ -391,7 +401,6 @@ if __name__ == "__main__":
         
         run_until(sim_total_time - simulator.state.dt)
 
-        # print("DEBUG:call_index, call_time:", call_index, call_time)
         if rank == 0:
             print("Controller Called at t: %.2f" % simulator.state.t)
 
@@ -429,10 +438,6 @@ if __name__ == "__main__":
             * 1e-6
         )
         
-        #print("DEBUG STN_recording_electrode_1_distances:", STN_recording_electrode_1_distances.shape)
-        #print("DEBUG STN_Syn_i:", STN_Syn_i.shape)
-
-
         STN_LFP_2 = (
             (1 / (4 * math.pi * sigma))
             * np.sum(
@@ -442,17 +447,10 @@ if __name__ == "__main__":
             )
             * 1e-6
         )
-        #print("DEBUG STN_recording_electrode_2_distances:", STN_recording_electrode_2_distances.shape)
-
-
-        # print("DEBUG STN_LFP_1:", len(STN_LFP_1))
-        # print("DEBUG STN_LFP_2:", len(STN_LFP_2))
 
         STN_LFP = np.hstack(
             (STN_LFP, comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM))
         )
-
-        #print("DEBUG STN_LFP_2:", type(comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM)), len(comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM)))
 
         # STN LFP AMPA and GABAa Contributions
         STN_LFP_AMPA_1 = (
@@ -553,28 +551,6 @@ if __name__ == "__main__":
 
         suffix = "_{:.1f}mA-{:.1f}deg".format(amplitude, phase*360/12)
 
-        # Write controller values to csv files
-        controller_measured_beta_values = np.asarray(controller.state_history)
-        controller_measured_error_values = np.asarray(controller.error_history)
-        controller_output_values = np.asarray(controller.output_history)
-        controller_sample_times = np.asarray(controller.sample_times)
-        try:
-            controller_reference_history = np.asarray(controller.reference_history)
-        except AttributeError:
-            controller_reference_history = None
-        try:
-            controller_iteration_history = np.asarray(controller.iteration_history)
-        except AttributeError:
-            controller_iteration_history = None
-        try:
-            controller_parameter_history = np.asarray(controller.parameter_history)
-        except AttributeError:
-            controller_parameter_history = None
-        try:
-            controller_integral_term_history = np.asarray(controller.integral_term_history)
-        except AttributeError:
-            controller_integral_term_history = None
-
         # Write the STN LFP to .mat file
         STN_LFP_Block = neo.Block(name="STN_LFP")
         STN_LFP_seg = neo.Segment(name="segment_0")
@@ -623,11 +599,10 @@ if __name__ == "__main__":
         
         reset()
 
-
     # Defining the list of amplitudes and phases we want to stimulate for
     amplitudes = np.arange(4, 5, 1)
     # 0 and 5 corresond respectively to stimulating at the peaks and at the trough
-    phases = np.arange(11, 12, 1)
+    phases = np.arange(0, 1, 1)
 
     # Iterate over different stimulation amplitudes
     for amplitude in amplitudes:  

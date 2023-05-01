@@ -166,7 +166,7 @@ def create_network(
         STN_cell.position[2] = 500
 
     # Save the generated STN xy positions to a textfile
-    np.savetxt("STN_xy_pos.txt", STN_Pop.positions, delimiter=",")
+    np.savetxt("STN_xy_pos_gen.txt", STN_Pop.positions, delimiter=",")
 
     # Synaptic Connections
     # Add variability to Cortical connections - cortical interneuron
@@ -467,7 +467,7 @@ def load_network(
         cell.position[1] = Cortical_Neuron_y_Positions[ii]
 
     # Load STN positions - Comment/Remove to generate new positions
-    STN_Neuron_xy_Positions = np.loadtxt("STN_xy_pos.txt", delimiter=",")
+    STN_Neuron_xy_Positions = np.loadtxt("STN_xy_pos_sim.txt", delimiter=",")
     stn_local_indices = [cell in STN_Pop for cell in STN_Pop.all_cells]
     STN_Neuron_x_Positions = STN_Neuron_xy_Positions[0, stn_local_indices]
     STN_Neuron_y_Positions = STN_Neuron_xy_Positions[1, stn_local_indices]
