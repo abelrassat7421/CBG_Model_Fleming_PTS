@@ -73,12 +73,20 @@ if __name__ == "__main__":
 
     simulation_runtime = c.RunTime
     controller_type = c.Controller
-    rng_seed = c.RandomSeed
+    #rng_seed = c.RandomSeed87
     timestep = c.TimeStep
     steady_state_duration = c.SteadyStateDuration
     save_stn_voltage = c.save_stn_voltage
     beta_burst_modulation_scale = c.beta_burst_modulation_scale
     burst_modulation_offset = c.modulation_offset
+    
+    # overwriting the random seed from the config file 
+    # loading the random seeds generated from generate_random_seeds.py
+    seeds = np.loadtxt("random_seeds.txt", delimiter=",")
+    
+    # Change seed here (idx seed must be between 0 and 18 included)
+    idx_seed = 0
+    rng_seed = int(seeds[idx_seed])
 
     sim_total_time = (
         steady_state_duration + simulation_runtime + timestep
@@ -104,7 +112,7 @@ if __name__ == "__main__":
     
     def run_PTS_simulation(amplitude, phase):
 
-        print("Simulation for stimulation amplitude {:.1f} mA and phase {:0.1f} deg.".format(amplitude, phase*360/12))
+        print("Simulation for stimulation amplitude {:.1f} mA, phase {:0.1f} deg and seed index {}.".format(amplitude, phase*360/12, idx_seed))
         print("rank: ", rank)
 
         # Use CVode to calculate i_membrane_ for fast LFP calculation
@@ -414,18 +422,6 @@ if __name__ == "__main__":
         STN_Syn_i = STN_AMPA_i + STN_GABAa_i
 
 
-        """
-        print("DEBUG STN_AMPA_i:", STN_AMPA_i.shape)
-        print("DEBUG STN_AMPA_i[0]:", STN_AMPA_i.shape[0])
-        #print("DEBUG STN_GABAa_i:", STN_GABAa_i.shape)
-        print("DEBUG STN_AMPA_i[0][0]", STN_AMPA_i[0][0])
-        print("DEBUG STN_AMPA_i[0]", STN_AMPA_i[:,0])
-        #print("DEBUG STN_GABAa_i[0] at t: %.2f:" % simulator.state.t, STN_GABAa_i[0][0])
-        print("DEBUG STN_AMPA_i[-1][0]", STN_AMPA_i[-1][0])
-        #print("DEBUG STN_GABAa_i[-1] at t: %.2f :" % simulator.state.t, STN_GABAa_i[0][-1])
-        print("DEBUG STN_Pop:", type(STN_Pop))
-        """
-
         # Computing the STN_LFP recorded by the two point of the electrode and doing some sort of average perhpas
         # STN LFP Calculation - Syn_i is in units of nA -> LFP units are mV
         STN_LFP_1 = (
@@ -526,8 +522,8 @@ if __name__ == "__main__":
             suffix = "_{:.0f}ms-{:.0f}ms".format(
                 last_write_time, simulator.state.t)
             fname = write_index + "STN_Soma_v" + suffix + ".mat"
-            dir_suffix = "_{:.1f}mA-{:.0f}deg".format(
-                amplitude, phase*360/12)
+            dir_suffix = "_{:.1f}mA-{:.0f}deg-{}rd_idx".format(
+                amplitude, phase*360/12, int(idx_seed))
             dir_name = "STN_POP" + dir_suffix 
             # testing without clear=True to check if we still have extra samples 
             STN_Pop.write_data(
@@ -539,7 +535,6 @@ if __name__ == "__main__":
 
         last_write_time = simulator.state.t
 
-
         # Write population membrane voltage data to file
         if c.save_ctx_voltage:
             Cortical_Pop.write_data(str(simulation_output_dir / "Cortical_Pop/Cortical_Collateral_v.mat"), 'collateral(0.5).v', clear=False)
@@ -549,7 +544,7 @@ if __name__ == "__main__":
         # GPi_Pop.write_data(str(simulation_output_dir / "GPi_Pop/GPi_Soma_v.mat", 'soma(0.5).v'), clear=True)
         # Thalamic_Pop.write_data(str(simulation_output_dir / "Thalamic_Pop/Thalamic_Soma_v.mat"), 'soma(0.5).v', clear=True)
 
-        suffix = "_{:.1f}mA-{:.1f}deg".format(amplitude, phase*360/12)
+        suffix = "_{:.1f}mA-{:.1f}deg-{}rd_idx".format(amplitude, phase*360/12, int(idx_seed))
 
         # Write the STN LFP to .mat file
         STN_LFP_Block = neo.Block(name="STN_LFP")
@@ -600,13 +595,13 @@ if __name__ == "__main__":
         reset()
 
     # Defining the list of amplitudes and phases we want to stimulate for
-    amplitudes = np.arange(4, 5, 1)
+    amplitudes = np.array([0])
     # 0 and 5 corresond respectively to stimulating at the peaks and at the trough
     phases = np.arange(0, 1, 1)
 
     # Iterate over different stimulation amplitudes
     for amplitude in amplitudes:  
-        for phase in phases:
-            run_PTS_simulation(amplitude, phase)
+       for phase in phases:
+          run_PTS_simulation(amplitude, phase)
 
 end()

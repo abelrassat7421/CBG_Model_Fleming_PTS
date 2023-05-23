@@ -24,7 +24,7 @@ from Electrode_Distances import (
     distances_to_electrode,
     collateral_distances_to_electrode,
 )
-from utils import generate_poisson_spike_times
+from utils import generate_poisson_spike_times, generate_stn_xy_pos
 
 
 def create_network(
@@ -466,8 +466,11 @@ def load_network(
         cell.position[0] = Cortical_Neuron_x_Positions[ii]
         cell.position[1] = Cortical_Neuron_y_Positions[ii]
 
+    # Generate new positions for the STN neurons
+    generate_stn_xy_pos(rd_seed=rng_seed)
+
     # Load STN positions - Comment/Remove to generate new positions
-    STN_Neuron_xy_Positions = np.loadtxt("STN_xy_pos_sim.txt", delimiter=",")
+    STN_Neuron_xy_Positions = np.loadtxt("STN_xy_pos_new.txt", delimiter=",")
     stn_local_indices = [cell in STN_Pop for cell in STN_Pop.all_cells]
     STN_Neuron_x_Positions = STN_Neuron_xy_Positions[0, stn_local_indices]
     STN_Neuron_y_Positions = STN_Neuron_xy_Positions[1, stn_local_indices]
