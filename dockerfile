@@ -18,10 +18,7 @@ RUN apt-get update
 RUN apt-get -y install openmpi-bin=3.1.3-11
 RUN pip3 install mpi4py==3.1.4
 RUN apt-get -y install time
-RUN pip3 install mat4py
-RUN pip3 install debugpy cerberus
-
-RUN pip install ptvsd
+RUN pip3 install cerberus
 
 WORKDIR /usr/app/src/CBG_Fleming_Model
 

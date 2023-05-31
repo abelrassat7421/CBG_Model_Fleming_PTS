@@ -471,7 +471,9 @@ def load_network(
 
     # Load STN positions - Comment/Remove to generate new positions
     STN_Neuron_xy_Positions = np.loadtxt("STN_xy_pos_new.txt", delimiter=",")
+    #print("DEBUG STN_Neuron_xy_Positions:", STN_Neuron_xy_Positions)
     stn_local_indices = [cell in STN_Pop for cell in STN_Pop.all_cells]
+    #print("DEBUG stn_local_indices:", stn_local_indices)
     STN_Neuron_x_Positions = STN_Neuron_xy_Positions[0, stn_local_indices]
     STN_Neuron_y_Positions = STN_Neuron_xy_Positions[1, stn_local_indices]
 

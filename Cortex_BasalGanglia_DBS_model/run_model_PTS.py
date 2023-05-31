@@ -85,7 +85,7 @@ if __name__ == "__main__":
     seeds = np.loadtxt("random_seeds.txt", delimiter=",")
     
     # Change seed here (idx seed must be between 0 and 18 included)
-    idx_seed = 0
+    idx_seed = 2
     rng_seed = int(seeds[idx_seed])
 
     sim_total_time = (
