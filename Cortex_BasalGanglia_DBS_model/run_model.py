@@ -14,13 +14,6 @@ Description:
 Original author: John Fleming, john.fleming@ucdconnect.ie
 """
 
-#Debugging 
-#import debugpy
-#debugpy.listen(("0.0.0.0", 5679))
-#print("Waiting for client to attach...")
-#debugpy.wait_for_client()
-#####
-
 import os
 from pathlib import Path
 
@@ -36,13 +29,12 @@ if "nogui" not in opts:
 
 from mpi4py import MPI
 import neuron
-from pyNN.neuron import setup, run_until, end, simulator
+from pyNN.neuron import setup, run_until, end, simulator, reset 
 from pyNN.parameters import Sequence
 from Controllers import (
     ZeroController,
     StandardPIDController,
     IterativeFeedbackTuningPIController,
-    PhaseStimulationController
 )
 
 import neo.io
@@ -61,7 +53,9 @@ import Global_Variables as GV
 h = neuron.h
 comm = MPI.COMM_WORLD
 
+
 if __name__ == "__main__":
+
     os.chdir(oldpwd)
     parser = argparse.ArgumentParser(description="CBG Model")
     parser.add_argument("config_file", nargs="?", help="yaml configuration file")
@@ -72,17 +66,27 @@ if __name__ == "__main__":
 
     #config_file = Path("conf_PTS_30s.yml").resolve()
     output_dir = Path(args.output_dir).resolve()
-    c = Config("conf_zero_4s.yml")
+    c = Config("conf_test_baseline_PTS.yml")
     os.chdir(newpwd)
+
+    simulation_output_dir = output_dir
 
     simulation_runtime = c.RunTime
     controller_type = c.Controller
-    rng_seed = c.RandomSeed
+    #rng_seed = c.RandomSeed87
     timestep = c.TimeStep
     steady_state_duration = c.SteadyStateDuration
     save_stn_voltage = c.save_stn_voltage
     beta_burst_modulation_scale = c.beta_burst_modulation_scale
     burst_modulation_offset = c.modulation_offset
+    
+    # overwriting the random seed from the config file 
+    # loading the random seeds generated from generate_random_seeds.py
+    seeds = np.loadtxt("random_seeds.txt", delimiter=",")
+    
+    # Change seed here (idx seed must be between 0 and 18 included)
+    idx_seed = 2
+    rng_seed = int(seeds[idx_seed])
 
     sim_total_time = (
         steady_state_duration + simulation_runtime + timestep
@@ -93,13 +97,24 @@ if __name__ == "__main__":
     rank = setup(timestep=timestep, rngseed=rng_seed)
 
     if rank == 0:
-        print("\n------ Configuration ------")
-        print(c, "\n")
+            print("\n------ Configuration ------")
+            print(c, "\n")
+
+    if rank == 0:
+            print(f"Output directory: {simulation_output_dir}")
+            simulation_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Make beta band filter centred on 25Hz (cutoff frequencies are 21-29 Hz)
     # for biomarker estimation
     fs = 1000.0 / rec_sampling_interval
     beta_b, beta_a = make_beta_cheby1_filter(fs=fs, n=4, rp=0.5, low=21, high=29)
+
+    amplitude = c.Amplitude
+    phase = c.Phase
+    
+
+    print("Simulation for stimulation amplitude {:.1f} mA, phase {:0.1f} deg and seed index {}.".format(amplitude, phase*360/12, idx_seed))
+    print("rank: ", rank)
 
     # Use CVode to calculate i_membrane_ for fast LFP calculation
     cvode = h.CVode()
@@ -202,9 +217,7 @@ if __name__ == "__main__":
     for ii, cell in enumerate(Cortical_Pop):
         cell.collateral_rx = collateral_rx_seq[ii]
 
-    # controller_window_length_no_samples and controller_window_tail_length_no_samples are only
-    # used in computing the beta band AVR 
-
+    """
     # Create times for when the DBS controller will be called
     # Window length for filtering biomarker
     controller_window_length = 2000.0  # ms
@@ -219,7 +232,6 @@ if __name__ == "__main__":
     )
 
     # Assuming that each time a stimulation is applied the controller must be called 
-    """
     controller_sampling_time = 20.0  # ms
     controller_start = (
         steady_state_duration + controller_window_length + controller_sampling_time
@@ -232,52 +244,14 @@ if __name__ == "__main__":
         controller_call_times = np.array([controller_start])
     """
 
-    mat_dic = sio.loadmat('phase_labsig.mat') 
-     
-    # the third index must be changed to iterate over all of the stimulation phases
-    # for i in range(12):
-
-    stim_points = mat_dic['phase_labsig'][0][0][0][0][0]
+    mat_dic = sio.loadmat('phase_t.mat') 
+    stim_points = mat_dic['phase_t'][phase][0]
     stim_time_points = stim_points*rec_sampling_interval # convert the points into time points in ms 
-    print("DEBUG: print(stim_points.shape)", stim_time_points.shape)
-    print("DEBUG: print(stim_points[150:200])", stim_time_points[150:200])
-
-    
-    # after_steady_state = np.array([stim_time_point > steady_state_duration + 10 + simulator.state.dt for stim_time_point in stim_time_points])
-    # trying without + 10 + simulator.state.dt
     after_steady_state = np.array([stim_time_point > steady_state_duration for stim_time_point in stim_time_points])
     call_times = stim_time_points[after_steady_state]
-    print("DEBUG: print(call_times.shape)", call_times.shape)
-    print("DEBUG: print(call_times[0])", call_times[0])
-    # print content of call_times if unexpected sizes
     
-
-    # Comment when testing with smaller runtime 
-
-    # delete the slicing of stim_time_points once the issue of extra samples at controller calls
-    # is solved
-    # all call_times should be with a decimal of either .5 or .0    
-    # print("DEBUG: before print(call_times[-25:])", call_times[-25:])
-    #call_times = np.around(call_times[:-16], decimals=1) 
-    #call_times[-1] = sim_total_time
-    # print("DEBUG: after print(call_times[-25:])", call_times[-25:])
-    # print("DEBUG: after print(call_times.shape)", call_times.shape)
-    #print("DEBUG: print(sim_total_time)", sim_total_time)
-
+    call_times = np.round(call_times, 1) 
     
-    # Comment when testing with longer runtime 
-
-    call_times = np.around(call_times[:94], decimals=1)
-    # print("DEBUG: after print(call_times[-25:])", call_times[-25:])
-    # print("DEBUG: after print(call_times[:25])", call_times[:25])
-    # Since it seems that the STN_LFP is recorded until the last controller call append last time of the simulation 
-    call_times[-1] = sim_total_time
-    # print("DEBUG: print(sim_total_time)", sim_total_time)
-
-
-    # Initialize the Controller being used:
-    # Controller sampling period, Ts, is in sec
-    # For our PTS stimulation we select ZERO
     if controller_type == "ZERO":
         Controller = ZeroController
     elif controller_type == "PID":
@@ -290,40 +264,9 @@ if __name__ == "__main__":
     controller_kwargs = get_controller_kwargs(c)
     controller = Controller(**controller_kwargs)
 
-    simulation_output_dir = output_dir
-    if rank == 0:
-        print(f"Output directory: {simulation_output_dir}")
-        simulation_output_dir.mkdir(parents=True, exist_ok=True)
-
     # Generate a square wave which represents the DBS signal
     # Needs to be initialized to zero when unused to prevent
     # open-circuit of cortical collateral extracellular mechanism
-    """
-    if c.Modulation == "frequency":
-        last_pulse_time_prior = steady_state_duration
-    else:
-        last_pulse_time_prior = 0
-
-    (
-        DBS_Signal,
-        DBS_times,
-        next_DBS_pulse_time,
-        last_DBS_pulse_time,
-    ) = controller.generate_dbs_signal(
-        start_time=steady_state_duration + 10 + simulator.state.dt,
-        stop_time=sim_total_time,
-        last_pulse_time_prior=last_pulse_time_prior,
-        dt=simulator.state.dt,
-        amplitude=-1.0,
-        frequency=130.0,
-        pulse_width=0.06,
-        offset=0,
-    )
-    """
-
-    # Iterate over different stimulation amplitudes
-    # for 
-
     (
         DBS_Signal, 
         DBS_times
@@ -331,56 +274,19 @@ if __name__ == "__main__":
         stop_time=sim_total_time,
         stim_time_points=call_times,
         dt=simulator.state.dt,
-        amplitude=2.0, 
+        amplitude=amplitude, 
         pulse_width=0.06,        
     )
-    
-    # Testing without steady_state_duration + 10 + simulator.state.dt -> changed also for GPe neurons 
-    """
-    (
-        DBS_Signal, 
-        DBS_times
-    ) = generate_dbs_pulses(steady_state_duration + 10 + simulator.state.dt,
-        stop_time=sim_total_time,
-        stim_time_points=call_times,
-        dt=simulator.state.dt,
-        amplitude=3.0, 
-        pulse_width=0.06,        
-    )
-    """
     
     # not sure of the size of the DBS_Signal so it can be concatenated in this way
     DBS_Signal = np.hstack((np.array([0, 0]), DBS_Signal))
     DBS_times = np.hstack((np.array([0, steady_state_duration + 10]), DBS_times))
-
-    """
-    # Get DBS time indexes which corresponds to controller call times
-    controller_DBS_indices = []
-    for call_time in controller_call_times:
-        indices = np.where(DBS_times == call_time)[0]
-        if len(indices) > 0:
-            controller_DBS_indices.extend([indices[0]])
-
-    # Set first portion of DBS signal (Up to first controller call after
-    # steady state) to zero amplitude
-    # DBS_Signal[0:] = 0
-    # next_DBS_pulse_time = controller_call_times[0]
-    """
 
     DBS_Signal_neuron = h.Vector(DBS_Signal)
     DBS_times_neuron = h.Vector(DBS_times)
 
     # Play DBS signal to global variable is_xtra
     DBS_Signal_neuron.play(h._ref_is_xtra, DBS_times_neuron, 1)
-
-    # Get DBS_Signal_neuron as a numpy array for easy updating
-    updated_DBS_signal = DBS_Signal_neuron.as_numpy()
-
-    """
-    # Initialize tracking the frequencies calculated by the controller
-    last_freq_calculated = 0
-    last_DBS_pulse_time = steady_state_duration
-    """
 
     # GPe DBS current stimulations - precalculated for % of collaterals
     # entrained for varying DBS amplitude
@@ -391,20 +297,13 @@ if __name__ == "__main__":
         [0, 0, 0, 1, 4, 8, 19, 30, 43, 59, 82, 100, 100, 100]
     )
 
-    """
-    if c.Modulation == "frequency":
-        last_pulse_time_prior = steady_state_duration
-    else:
-        last_pulse_time_prior = 0
-    """
-
     # Make new GPe DBS vector for each GPe neuron - each GPe neuron needs a
     # pointer to its own DBS signal
     GPe_DBS_Signal_neuron = []
     GPe_DBS_times_neuron = []
     updated_GPe_DBS_signal = []
     for i in range(0, Cortical_Pop.local_size):
-
+        
         print("GPe neuron", i)
 
         (
@@ -418,47 +317,13 @@ if __name__ == "__main__":
             pulse_width=0.06,        
         )
 
-        """
-        (
-            GPe_DBS_Signal, 
-            GPe_DBS_times
-        ) = generate_dbs_pulses(steady_state_duration + 10 + simulator.state.dt,
-            stop_time=sim_total_time,
-            stim_time_points=call_times,
-            dt=simulator.state.dt,
-            amplitude=100, 
-            pulse_width=0.06,        
-        )
-        """
-
-        '''
-        (
-            GPe_DBS_Signal,
-            GPe_DBS_times,
-            GPe_next_DBS_pulse_time,
-            GPe_last_DBS_pulse_time,
-        ) = controller.generate_dbs_signal(
-            start_time=steady_state_duration + 10 + simulator.state.dt,
-            stop_time=sim_total_time,
-            last_pulse_time_prior=last_pulse_time_prior,
-            dt=simulator.state.dt,
-            amplitude=100.0,
-            frequency=130.0,
-            pulse_width=0.06,
-            offset=0,
-        )
-        '''
-
         GPe_DBS_Signal = np.hstack((np.array([0, 0]), GPe_DBS_Signal))
         GPe_DBS_times = np.hstack(
             (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
         )
 
-        """
         # Set the GPe DBS signals to zero amplitude
         GPe_DBS_Signal[0:] = 0
-        GPe_next_DBS_pulse_time = controller_call_times[0]
-        """
 
         # Neuron vector of GPe DBS signals
         GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
@@ -472,6 +337,52 @@ if __name__ == "__main__":
         # Hold a reference to the signal as a numpy array, and append to list
         # of GPe stimulation signals
         updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[i].as_numpy())
+
+    # DBS GPe neuron stimulation
+    num_GPe_Neurons_entrained = int(
+        np.interp(
+            amplitude, interp_DBS_amplitudes, interp_collaterals_entrained
+        )
+    )
+    # Stimulate the entrained GPe neurons
+    for j in np.arange(0, num_GPe_Neurons_entrained):
+        cellid = Cortical_Pop[GPe_stimulation_order[j]]
+
+        if Cortical_Pop.is_local(cellid):
+            index = Cortical_Pop.id_to_local_index(cellid)
+
+            print("stimulated GPe neuron", j,'', index)
+
+            (
+                GPe_DBS_Signal, 
+                GPe_DBS_times
+            ) = generate_dbs_pulses(steady_state_duration,
+                stop_time=sim_total_time,
+                stim_time_points=call_times,
+                dt=simulator.state.dt,
+                amplitude=100, 
+                pulse_width=0.06,        
+            )
+
+            """
+            GPe_DBS_Signal = np.hstack((np.array([0, 0]), GPe_DBS_Signal))
+            GPe_DBS_times = np.hstack(
+                (np.array([0, steady_state_duration + 10]), GPe_DBS_times)
+            )
+
+            # Neuron vector of GPe DBS signals
+            GPe_DBS_Signal_neuron.append(h.Vector(GPe_DBS_Signal))
+            GPe_DBS_times_neuron.append(h.Vector(GPe_DBS_times))
+            """
+
+            # Play the stimulation into each GPe neuron
+            GPe_DBS_Signal_neuron[index].play(
+                GV.GPe_stimulation_iclamps[index]._ref_amp, GPe_DBS_times_neuron[index], 1
+            )
+
+            # Hold a reference to the signal as a numpy array, and append to list
+            # of GPe stimulation signals
+            updated_GPe_DBS_signal.append(GPe_DBS_Signal_neuron[index].as_numpy())
 
     # Initialise STN LFP list
     STN_LFP = []
@@ -496,265 +407,134 @@ if __name__ == "__main__":
 
     # Reload striatal spike times after loading the steady state
     Striatal_Pop.set(spike_times=striatal_spike_times[:, 0])
-
-    # Why would I need a controller call? -> try without and see if still extra samples
-
-    # For loop to integrate the model up to each controller call
-
-    # comment 1
-    for call_index, call_time in enumerate(call_times):
     
-        # comment 2
-        run_until(call_time - simulator.state.dt)
-        #run_until(sim_total_time - simulator.state.dt)
+    run_until(sim_total_time - simulator.state.dt)
 
-        # print("DEBUG:call_index, call_time:", call_index, call_time)
+    if rank == 0:
+        print("Controller Called at t: %.2f" % simulator.state.t)
 
-        if rank == 0:
-            print("Controller Called at t: %.2f" % simulator.state.t)
+    # Calculate the LFP and biomarkers, etc.
+    STN_AMPA_i = np.array(
+        STN_Pop.get_data("AMPA.i", gather=False).segments[0].analogsignals[0]
+    )
+    STN_GABAa_i = np.array(
+        STN_Pop.get_data("GABAa.i", gather=False).segments[0].analogsignals[0]
+    )
+    STN_Syn_i = STN_AMPA_i + STN_GABAa_i
 
-        # Calculate the LFP and biomarkers, etc.
-        STN_AMPA_i = np.array(
-            STN_Pop.get_data("AMPA.i", gather=False).segments[0].analogsignals[0]
+
+    # Computing the STN_LFP recorded by the two point of the electrode and doing some sort of average perhpas
+    # STN LFP Calculation - Syn_i is in units of nA -> LFP units are mV
+    STN_LFP_1 = (
+        (1 / (4 * math.pi * sigma))
+        * np.sum(
+            (1 / (STN_recording_electrode_1_distances * 1e-6))
+            * STN_Syn_i.transpose(),
+            axis=0,
         )
-        STN_GABAa_i = np.array(
-            STN_Pop.get_data("GABAa.i", gather=False).segments[0].analogsignals[0]
-        )
-        STN_Syn_i = STN_AMPA_i + STN_GABAa_i
-
-        
-        print("DEBUG STN_AMPA_i:", STN_AMPA_i.shape)
-        print("DEBUG STN_AMPA_i[0]:", STN_AMPA_i.shape[0])
-        #print("DEBUG STN_GABAa_i:", STN_GABAa_i.shape)
-        print("DEBUG STN_AMPA_i[0][0]", STN_AMPA_i[0][0])
-        print("DEBUG STN_AMPA_i[0]", STN_AMPA_i[:,0])
-        #print("DEBUG STN_GABAa_i[0] at t: %.2f:" % simulator.state.t, STN_GABAa_i[0][0])
-        print("DEBUG STN_AMPA_i[-1][0]", STN_AMPA_i[-1][0])
-        #print("DEBUG STN_GABAa_i[-1] at t: %.2f :" % simulator.state.t, STN_GABAa_i[0][-1])
-        print("DEBUG STN_Pop:", type(STN_Pop))
-        
-
-        # Computing the STN_LFP recorded by the two point of the electrode and doing some sort of average perhpas
-        # STN LFP Calculation - Syn_i is in units of nA -> LFP units are mV
-        STN_LFP_1 = (
-            (1 / (4 * math.pi * sigma))
-            * np.sum(
-                (1 / (STN_recording_electrode_1_distances * 1e-6))
-                * STN_Syn_i.transpose(),
-                axis=0,
-            )
-            * 1e-6
-        )
-        
-        #print("DEBUG STN_recording_electrode_1_distances:", STN_recording_electrode_1_distances.shape)
-        #print("DEBUG STN_Syn_i:", STN_Syn_i.shape)
-
-
-        STN_LFP_2 = (
-            (1 / (4 * math.pi * sigma))
-            * np.sum(
-                (1 / (STN_recording_electrode_2_distances * 1e-6))
-                * STN_Syn_i.transpose(),
-                axis=0,
-            )
-            * 1e-6
-        )
-        #print("DEBUG STN_recording_electrode_2_distances:", STN_recording_electrode_2_distances.shape)
-
-
-        # print("DEBUG STN_LFP_1:", len(STN_LFP_1))
-        # print("DEBUG STN_LFP_2:", len(STN_LFP_2))
-
-        STN_LFP = np.hstack(
-            (STN_LFP, comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM))
-        )
-
-        #print("DEBUG STN_LFP_2:", type(comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM)), len(comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM)))
-
-        # STN LFP AMPA and GABAa Contributions
-        STN_LFP_AMPA_1 = (
-            (1 / (4 * math.pi * sigma))
-            * np.sum(
-                (1 / (STN_recording_electrode_1_distances * 1e-6))
-                * STN_AMPA_i.transpose(),
-                axis=0,
-            )
-            * 1e-6
-        )
-        STN_LFP_AMPA_2 = (
-            (1 / (4 * math.pi * sigma))
-            * np.sum(
-                (1 / (STN_recording_electrode_2_distances * 1e-6))
-                * STN_AMPA_i.transpose(),
-                axis=0,
-            )
-            * 1e-6
-        )
-        STN_LFP_AMPA = np.hstack(
-            (STN_LFP_AMPA, comm.allreduce(STN_LFP_AMPA_1 - STN_LFP_AMPA_2, op=MPI.SUM))
-        )
-
-        STN_LFP_GABAa_1 = (
-            (1 / (4 * math.pi * sigma))
-            * np.sum(
-                (1 / (STN_recording_electrode_1_distances * 1e-6))
-                * STN_GABAa_i.transpose(),
-                axis=0,
-            )
-            * 1e-6
-        )
-        STN_LFP_GABAa_2 = (
-            (1 / (4 * math.pi * sigma))
-            * np.sum(
-                (1 / (STN_recording_electrode_2_distances * 1e-6))
-                * STN_GABAa_i.transpose(),
-                axis=0,
-            )
-            * 1e-6
-        )
-        STN_LFP_GABAa = np.hstack(
-            (
-                STN_LFP_GABAa,
-                comm.allreduce(STN_LFP_GABAa_1 - STN_LFP_GABAa_2, op=MPI.SUM),
-            )
-        )
-        
-        # Biomarker Calculation:
-        lfp_beta_average_value = calculate_avg_beta_power(
-            lfp_signal=STN_LFP[-controller_window_length_no_samples:],
-            tail_length=controller_window_tail_length_no_samples,
-            beta_b=beta_b,
-            beta_a=beta_a,
-        )
-        print("DEBUG len(STN_LFP):", len(STN_LFP))
-        print("DEBUG simulator.state.t:", simulator.state.t)
-
-
-        if rank == 0:
-            print("Beta Average: %f" % lfp_beta_average_value)
-
-        # For our application no need to update stimulation frequency or amplitude 
-        
-        """
-        if c.Modulation == "frequency":
-            # Calculate the updated DBS Frequency
-            DBS_amp = 1.5
-            DBS_freq = controller.update(
-                state_value=lfp_beta_average_value, current_time=simulator.state.t
-            )
-        
-        else:
-            # Calculate the updated DBS amplitude
-            DBS_amp = controller.update(
-                state_value=lfp_beta_average_value, current_time=simulator.state.t
-            )
-            DBS_freq = 130.0
-        """
-        
-        # Don't need to update the DBS signal 
+        * 1e-6
+    )
     
-        # Update the DBS Signal
-        if call_index + 1 < len(controller_call_times):
-            
-            if c.Modulation == "frequency":
-                last_pulse_time_prior = last_DBS_pulse_time
-                # Check if the frequency needs to change before the last time that was calculated
-                if DBS_freq != last_freq_calculated:
-                    if DBS_freq == 0.0:  # Check if DBS wants to turn off
-                        next_DBS_pulse_time = 1e9
-                    else:  # Calculate new next pulse time if DBS is on
-                        T = (1.0 / DBS_freq) * 1e3
-                        next_DBS_pulse_time = last_DBS_pulse_time + T - 0.06
+    STN_LFP_2 = (
+        (1 / (4 * math.pi * sigma))
+        * np.sum(
+            (1 / (STN_recording_electrode_2_distances * 1e-6))
+            * STN_Syn_i.transpose(),
+            axis=0,
+        )
+        * 1e-6
+    )
 
-                        # Need to check for situation when new DBS time is less than the current time
-                        if next_DBS_pulse_time <= simulator.state.t:
-                            next_DBS_pulse_time = simulator.state.t
-            else:
-                last_pulse_time_prior = 0
-            
-            
-            # Calculate new DBS segment from the next DBS pulse time
-            if next_DBS_pulse_time < controller_call_times[call_index + 1]:
+    STN_LFP = np.hstack(
+        (STN_LFP, comm.allreduce(STN_LFP_1 - STN_LFP_2, op=MPI.SUM))
+    )
 
-                GPe_next_DBS_pulse_time = next_DBS_pulse_time
+    # STN LFP AMPA and GABAa Contributions
+    STN_LFP_AMPA_1 = (
+        (1 / (4 * math.pi * sigma))
+        * np.sum(
+            (1 / (STN_recording_electrode_1_distances * 1e-6))
+            * STN_AMPA_i.transpose(),
+            axis=0,
+        )
+        * 1e-6
+    )
+    STN_LFP_AMPA_2 = (
+        (1 / (4 * math.pi * sigma))
+        * np.sum(
+            (1 / (STN_recording_electrode_2_distances * 1e-6))
+            * STN_AMPA_i.transpose(),
+            axis=0,
+        )
+        * 1e-6
+    )
+    STN_LFP_AMPA = np.hstack(
+        (STN_LFP_AMPA, comm.allreduce(STN_LFP_AMPA_1 - STN_LFP_AMPA_2, op=MPI.SUM))
+    )
 
-                # DBS Cortical Collateral Stimulation
-                (
-                    new_DBS_Signal_Segment,
-                    new_DBS_times_Segment,
-                    next_DBS_pulse_time,
-                    last_DBS_pulse_time,
-                ) = controller.generate_dbs_signal(
-                    start_time=next_DBS_pulse_time,
-                    stop_time=controller_call_times[call_index + 1],
-                    last_pulse_time_prior=last_pulse_time_prior,
-                    dt=simulator.state.dt,
-                    amplitude=-DBS_amp,
-                    frequency=DBS_freq,
-                    pulse_width=0.06,
-                    offset=0,
-                )
+    STN_LFP_GABAa_1 = (
+        (1 / (4 * math.pi * sigma))
+        * np.sum(
+            (1 / (STN_recording_electrode_1_distances * 1e-6))
+            * STN_GABAa_i.transpose(),
+            axis=0,
+        )
+        * 1e-6
+    )
+    STN_LFP_GABAa_2 = (
+        (1 / (4 * math.pi * sigma))
+        * np.sum(
+            (1 / (STN_recording_electrode_2_distances * 1e-6))
+            * STN_GABAa_i.transpose(),
+            axis=0,
+        )
+        * 1e-6
+    )
+    STN_LFP_GABAa = np.hstack(
+        (
+            STN_LFP_GABAa,
+            comm.allreduce(STN_LFP_GABAa_1 - STN_LFP_GABAa_2, op=MPI.SUM),
+        )
+    )
 
-                # Update DBS segment - replace original DBS array values with
-                # updated ones
-                indices = np.where(DBS_times == new_DBS_times_Segment[0])[0]
-                if len(indices) > 0:
-                    window_start_index = indices[0]
-                else:
-                    window_start_index = 0
-                new_window_sample_length = len(new_DBS_Signal_Segment)
-                window_end_index = window_start_index + new_window_sample_length
-                updated_DBS_signal[
-                    window_start_index:window_end_index
-                ] = new_DBS_Signal_Segment
+    # Min Jae isn't interested in this for the time being
+    """
+    # Biomarker Calculation:
+    lfp_beta_average_value = calculate_avg_beta_power(
+        lfp_signal=STN_LFP[-controller_window_length_no_samples:],
+        tail_length=controller_window_tail_length_no_samples,
+        beta_b=beta_b,
+        beta_a=beta_a,
+    )
+    print("DEBUG len(STN_LFP):", len(STN_LFP))
+    print("DEBUG simulator.state.t:", simulator.state.t)
 
-                # DBS GPe neuron stimulation
-                num_GPe_Neurons_entrained = int(
-                    np.interp(
-                        DBS_amp, interp_DBS_amplitudes, interp_collaterals_entrained
-                    )
-                )
 
-                # Make copy of current DBS segment and rescale for GPe neuron
-                # stimulation
-                GPe_DBS_Segment = new_DBS_Signal_Segment.copy()
-                GPe_DBS_Segment *= -1
-                GPe_DBS_Segment[GPe_DBS_Segment > 0] = 100
+    if rank == 0:
+        print("Beta Average: %f" % lfp_beta_average_value)
 
-                # Stimulate the entrained GPe neurons
-                for i in np.arange(0, num_GPe_Neurons_entrained):
-                    cellid = Cortical_Pop[GPe_stimulation_order[i]]
-                    if Cortical_Pop.is_local(cellid):
-                        index = Cortical_Pop.id_to_local_index(cellid)
-                        updated_GPe_DBS_signal[index][
-                            window_start_index:window_end_index
-                        ] = GPe_DBS_Segment
+    """ 
 
-                # Remember the last frequency that was calculated
-                last_freq_calculated = DBS_freq
+    # Write population data to file
+    if save_stn_voltage:
+        # comment 3
+        #write_index = "{:.0f}_".format(call_index)
+        write_index = "{:.0f}_".format(0)
+        suffix = "_{:.0f}ms-{:.0f}ms".format(
+            last_write_time, simulator.state.t)
+        fname = write_index + "STN_Soma_v" + suffix + ".mat"
+        dir_suffix = "_{:.1f}mA-{:.0f}deg-{}rd_idx".format(
+            amplitude, phase*360/12, int(idx_seed))
+        dir_name = "STN_POP" + dir_suffix 
+        # testing without clear=True to check if we still have extra samples 
+        STN_Pop.write_data(
+            str(simulation_output_dir / dir_name / fname),
+            "soma(0.5).v", clear=True
+        )
+    else:
+        STN_Pop.get_data("soma(0.5).v", clear=True)
 
-            else:
-                pass
-        
-        
-        # Write population data to file
-        if save_stn_voltage:
-            # comment 3
-            write_index = "{:.0f}_".format(call_index)
-            #write_index = "{:.0f}_".format(0)
-            suffix = "_{:.0f}ms-{:.0f}ms".format(
-                last_write_time, simulator.state.t)
-            fname = write_index + "STN_Soma_v" + suffix + ".mat"
-            STN_Pop.write_data(
-                str(simulation_output_dir / "STN_POP" / fname),
-                "soma(0.5).v",
-                clear=True
-            )
-        else:
-            STN_Pop.get_data("soma(0.5).v", clear=True)
-
-        last_write_time = simulator.state.t
-
+    last_write_time = simulator.state.t
 
     # Write population membrane voltage data to file
     if c.save_ctx_voltage:
@@ -765,73 +545,7 @@ if __name__ == "__main__":
     # GPi_Pop.write_data(str(simulation_output_dir / "GPi_Pop/GPi_Soma_v.mat", 'soma(0.5).v'), clear=True)
     # Thalamic_Pop.write_data(str(simulation_output_dir / "Thalamic_Pop/Thalamic_Soma_v.mat"), 'soma(0.5).v', clear=True)
 
-    # Write controller values to csv files
-    controller_measured_beta_values = np.asarray(controller.state_history)
-    controller_measured_error_values = np.asarray(controller.error_history)
-    controller_output_values = np.asarray(controller.output_history)
-    controller_sample_times = np.asarray(controller.sample_times)
-    try:
-        controller_reference_history = np.asarray(controller.reference_history)
-    except AttributeError:
-        controller_reference_history = None
-    try:
-        controller_iteration_history = np.asarray(controller.iteration_history)
-    except AttributeError:
-        controller_iteration_history = None
-    try:
-        controller_parameter_history = np.asarray(controller.parameter_history)
-    except AttributeError:
-        controller_parameter_history = None
-    try:
-        controller_integral_term_history = np.asarray(controller.integral_term_history)
-    except AttributeError:
-        controller_integral_term_history = None
-
-    if rank == 0:
-        np.savetxt(
-            simulation_output_dir / "controller_beta_values.csv",
-            controller_measured_beta_values,
-            delimiter=",",
-        )
-        np.savetxt(
-            simulation_output_dir / "controller_error_values.csv",
-            controller_measured_error_values,
-            delimiter=",",
-        )
-        np.savetxt(
-            simulation_output_dir / "controller_values.csv",
-            controller_output_values,
-            delimiter=",",
-        )
-        np.savetxt(
-            simulation_output_dir / "controller_sample_times.csv",
-            controller_sample_times,
-            delimiter=",",
-        )
-        if controller_iteration_history is not None:
-            np.savetxt(
-                simulation_output_dir / "controller_iteration_values.csv",
-                controller_iteration_history,
-                delimiter=",",
-            )
-        if controller_reference_history is not None:
-            np.savetxt(
-                simulation_output_dir / "controller_reference_values.csv",
-                controller_reference_history,
-                delimiter=",",
-            )
-        if controller_parameter_history is not None:
-            np.savetxt(
-                simulation_output_dir / "controller_parameter_values.csv",
-                controller_parameter_history,
-                delimiter=",",
-            )
-        if controller_integral_term_history is not None:
-            np.savetxt(
-                simulation_output_dir / "controller_integral_term_values.csv",
-                controller_integral_term_history,
-                delimiter=",",
-            )
+    suffix = "_{:.1f}mA-{:.1f}deg-{}rd_idx".format(amplitude, phase*360/12, int(idx_seed))
 
     # Write the STN LFP to .mat file
     STN_LFP_Block = neo.Block(name="STN_LFP")
@@ -848,25 +562,9 @@ if __name__ == "__main__":
     print("DEBUG final STN_LFP len:", len(STN_LFP))
     print("DEBUG simulator.state.t:", simulator.state.t)
 
-    w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / "STN_LFP.mat"))
+    fname = "STN_LFP" + suffix +  ".mat"
+    w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / fname))
     w.write_block(STN_LFP_Block)
-
-    # # Write LFP AMPA and GABAa components to file
-    # STN_LFP_AMPA_Block = neo.Block(name='STN_LFP_AMPA')
-    # STN_LFP_AMPA_seg = neo.Segment(name='segment_0')
-    # STN_LFP_AMPA_Block.segments.append(STN_LFP_AMPA_seg)
-    # STN_LFP_AMPA_signal = neo.AnalogSignal(STN_LFP_AMPA, units='mV', t_start=0*pq.ms, sampling_rate=pq.Quantity(1.0 / rec_sampling_interval, '1/ms'))
-    # STN_LFP_AMPA_seg.analogsignals.append(STN_LFP_AMPA_signal)
-    # w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / "STN_LFP_AMPA.mat"))
-    # w.write_block(STN_LFP_AMPA_Block)
-
-    # STN_LFP_GABAa_Block = neo.Block(name='STN_LFP_GABAa')
-    # STN_LFP_GABAa_seg = neo.Segment(name='segment_0')
-    # STN_LFP_GABAa_Block.segments.append(STN_LFP_GABAa_seg)
-    # STN_LFP_GABAa_signal = neo.AnalogSignal(STN_LFP_GABAa, units='mV', t_start=0*pq.ms, sampling_rate=pq.Quantity(1.0 / rec_sampling_interval, '1/ms'))
-    # STN_LFP_GABAa_seg.analogsignals.append(STN_LFP_GABAa_signal)
-    # w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / "STN_LFP_GABAa.mat"))
-    # w.write_block(STN_LFP_GABAa_Block)
 
     # Write the DBS Signal to .mat file
     # DBS Amplitude
@@ -888,7 +586,8 @@ if __name__ == "__main__":
     )
     DBS_Signal_seg.analogsignals.append(DBS_times)
 
-    w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / "DBS_Signal.mat"))
+    fname = "DBS_Signal" + suffix +  ".mat"
+    w = neo.io.NeoMatlabIO(filename=str(simulation_output_dir / fname))
     w.write_block(DBS_Block)
 
     if rank == 0:
