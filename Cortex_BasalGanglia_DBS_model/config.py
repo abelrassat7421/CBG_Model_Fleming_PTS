@@ -75,7 +75,7 @@ class Config(object):
         save_stn_voltage={"type": "boolean", "coerce": bool, "default": True},
         save_ctx_voltage={"type": "boolean", "coerce": bool, "default": False},
         Amplitude={"type": "float", "coerce": float, "default": 0},
-        Phase={"type": "float", "coerce": float, "default": 0},
+        Phase={"type": "integer", "coerce": int, "default": 0},
     )
 
     def __init__(self, config_file):

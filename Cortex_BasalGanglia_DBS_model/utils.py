@@ -134,12 +134,3 @@ def generate_stn_xy_pos(rd_seed):
     with open("STN_xy_pos_new.txt", "w+") as f:
         f.write(x_points)
         f.write(y_points)
-
-    """
-    # to generate STN coordinates when running the simulation in a docker container
-    # function called in model.load_network
-
-    with open("Cortex_BasalGanglia_DBS_model/STN_xy_pos_new.txt", "w+") as f:
-        f.write(x_points)
-        f.write(y_points)
-    """
