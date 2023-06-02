@@ -114,7 +114,7 @@ if __name__ == "__main__":
     phase = c.Phase
     
 
-    print("Simulation for stimulation amplitude {:.1f} mA, phase {:0.1f} deg and seed index {}.".format(amplitude, phase*360/12, idx_seed))
+    print("Simulation for stimulation amplitude {:.1f} mA, phase {:0.1f} deg and seed {}.".format(amplitude, phase*360/12, rng_seed))
     print("rank: ", rank)
 
     # Use CVode to calculate i_membrane_ for fast LFP calculation
@@ -524,8 +524,8 @@ if __name__ == "__main__":
         suffix = "_{:.0f}ms-{:.0f}ms".format(
             last_write_time, simulator.state.t)
         fname = write_index + "STN_Soma_v" + suffix + ".mat"
-        dir_suffix = "_{:.1f}mA-{:.0f}deg-{}rd_idx".format(
-            amplitude, phase*360/12, int(idx_seed))
+        dir_suffix = "_{:.1f}mA-{:.0f}deg-{}seed".format(
+            amplitude, phase*360/12, rng_seed)
         dir_name = "STN_POP" + dir_suffix 
         # testing without clear=True to check if we still have extra samples 
         STN_Pop.write_data(
@@ -546,7 +546,7 @@ if __name__ == "__main__":
     # GPi_Pop.write_data(str(simulation_output_dir / "GPi_Pop/GPi_Soma_v.mat", 'soma(0.5).v'), clear=True)
     # Thalamic_Pop.write_data(str(simulation_output_dir / "Thalamic_Pop/Thalamic_Soma_v.mat"), 'soma(0.5).v', clear=True)
 
-    suffix = "_{:.1f}mA-{:.1f}deg-{}rd_idx".format(amplitude, phase*360/12, int(idx_seed))
+    suffix = "_{:.1f}mA-{:.1f}deg-{}seed".format(amplitude, phase*360/12, rng_seed)
 
     # Write the STN LFP to .mat file
     STN_LFP_Block = neo.Block(name="STN_LFP")
