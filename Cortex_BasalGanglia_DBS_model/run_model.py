@@ -55,7 +55,6 @@ comm = MPI.COMM_WORLD
 
 
 if __name__ == "__main__":
-
     os.chdir(oldpwd)
     parser = argparse.ArgumentParser(description="CBG Model")
     parser.add_argument("config_file", nargs="?", help="yaml configuration file")
@@ -64,22 +63,23 @@ if __name__ == "__main__":
     )
     args, unknown = parser.parse_known_args()
 
-    #config_file = Path("conf_PTS_30s.yml").resolve()
+    config_file = Path(args.config_file).resolve()
     output_dir = Path(args.output_dir).resolve()
-    c = Config("conf_test_baseline_PTS.yml")
+    c = Config(args.config_file)
     os.chdir(newpwd)
 
     simulation_output_dir = output_dir
 
     simulation_runtime = c.RunTime
     controller_type = c.Controller
-    #rng_seed = c.RandomSeed87
+    rng_seed = c.RandomSeed
     timestep = c.TimeStep
     steady_state_duration = c.SteadyStateDuration
     save_stn_voltage = c.save_stn_voltage
     beta_burst_modulation_scale = c.beta_burst_modulation_scale
     burst_modulation_offset = c.modulation_offset
     
+    """
     # overwriting the random seed from the config file 
     # loading the random seeds generated from generate_random_seeds.py
     seeds = np.loadtxt("random_seeds.txt", delimiter=",")
@@ -87,6 +87,7 @@ if __name__ == "__main__":
     # Change seed here (idx seed must be between 0 and 18 included)
     idx_seed = 2
     rng_seed = int(seeds[idx_seed])
+    """
 
     sim_total_time = (
         steady_state_duration + simulation_runtime + timestep

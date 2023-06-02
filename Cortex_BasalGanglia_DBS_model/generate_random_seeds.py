@@ -6,7 +6,7 @@ import numpy as np
 
 random.seed(42)
 
-num_seeds = 19
+num_seeds = 50
 min_seed = 1
 max_seed = 10000
 
@@ -16,10 +16,9 @@ seeds = [random.randint(min_seed, max_seed) for _ in range(num_seeds)]
 seeds = ",".join(str(i) for i in seeds) 
 
 print("Hello")
-with open("Cortex_BasalGanglia_DBS_model/random_seeds.txt", "w+") as f:
+with open("Cortex_BasalGanglia_DBS_model/random_seeds_50.txt", "w+") as f:
     f.write(seeds)
 
-seeds_read = np.loadtxt("Cortex_BasalGanglia_DBS_model/random_seeds.txt", delimiter=",")
+seeds_read = np.loadtxt("Cortex_BasalGanglia_DBS_model/random_seeds_50.txt", delimiter=",")
 
 print(seeds_read)
-print("Hello")
