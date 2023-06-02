@@ -1,14 +1,14 @@
 #!/bin/bash -l
 #SBATCH --job-name=pts
 # speficity number of nodes 
-#SBATCH -N 20
-#SBATCH --array=1-3
+#SBATCH -N 10
+#SBATCH --array=1-50
 
 # specify number of tasks/cores per node required
 #SBATCH --ntasks-per-node 1
 
 # specify the walltime e.g 20 mins
-#SBATCH -t 2:00:00
+#SBATCH -t 15:00:00
 
 # set to email at start,end and failed jobs
 #SBATCH --mail-type=ALL
