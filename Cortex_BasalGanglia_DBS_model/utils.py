@@ -130,7 +130,10 @@ def generate_stn_xy_pos(rd_seed):
     x_points = ",".join(str(i) for i in x_points) 
     x_points += "\n"
     y_points = ",".join(str(i) for i in y_points)
+
+    prefix = "STN_xy_pos_seed{}".format(rd_seed) 
+    fname = prefix + ".txt"
  
-    with open("STN_xy_pos_new.txt", "w+") as f:
+    with open(fname, "w+") as f:
         f.write(x_points)
         f.write(y_points)
