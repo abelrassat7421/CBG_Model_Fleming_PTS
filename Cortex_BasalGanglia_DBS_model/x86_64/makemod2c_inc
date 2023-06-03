@@ -1,0 +1,168 @@
+./Cortical_Axon_I_Kd.c: ../Cortical_Axon_I_Kd.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Axon_I_Kd.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Axon_I_Kd.o: ./Cortical_Axon_I_Kd.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Axon_I_Kv.c: ../Cortical_Axon_I_Kv.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Axon_I_Kv.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Axon_I_Kv.o: ./Cortical_Axon_I_Kv.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Axon_I_Leak.c: ../Cortical_Axon_I_Leak.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Axon_I_Leak.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Axon_I_Leak.o: ./Cortical_Axon_I_Leak.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Axon_I_Na.c: ../Cortical_Axon_I_Na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Axon_I_Na.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Axon_I_Na.o: ./Cortical_Axon_I_Na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Soma_I_K.c: ../Cortical_Soma_I_K.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Soma_I_K.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Soma_I_K.o: ./Cortical_Soma_I_K.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Soma_I_Leak.c: ../Cortical_Soma_I_Leak.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Soma_I_Leak.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Soma_I_Leak.o: ./Cortical_Soma_I_Leak.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Soma_I_M.c: ../Cortical_Soma_I_M.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Soma_I_M.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Soma_I_M.o: ./Cortical_Soma_I_M.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Cortical_Soma_I_Na.c: ../Cortical_Soma_I_Na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Cortical_Soma_I_Na.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Cortical_Soma_I_Na.o: ./Cortical_Soma_I_Na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Destexhe_Static_AMPA_Synapse.c: ../Destexhe_Static_AMPA_Synapse.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Destexhe_Static_AMPA_Synapse.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Destexhe_Static_AMPA_Synapse.o: ./Destexhe_Static_AMPA_Synapse.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Destexhe_Static_GABAA_Synapse.c: ../Destexhe_Static_GABAA_Synapse.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Destexhe_Static_GABAA_Synapse.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Destexhe_Static_GABAA_Synapse.o: ./Destexhe_Static_GABAA_Synapse.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Interneuron_I_K.c: ../Interneuron_I_K.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Interneuron_I_K.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Interneuron_I_K.o: ./Interneuron_I_K.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Interneuron_I_Leak.c: ../Interneuron_I_Leak.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Interneuron_I_Leak.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Interneuron_I_Leak.o: ./Interneuron_I_Leak.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Interneuron_I_Na.c: ../Interneuron_I_Na.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Interneuron_I_Na.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Interneuron_I_Na.o: ./Interneuron_I_Na.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./myions.c: ../myions.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "myions.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./myions.o: ./myions.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./pGPeA.c: ../pGPeA.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "pGPeA.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./pGPeA.o: ./pGPeA.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./pSTN.c: ../pSTN.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "pSTN.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./pSTN.o: ./pSTN.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./SynNoise.c: ../SynNoise.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "SynNoise.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./SynNoise.o: ./SynNoise.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Thalamic_I_leak.c: ../Thalamic_I_leak.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Thalamic_I_leak.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Thalamic_I_leak.o: ./Thalamic_I_leak.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Thalamic_I_Na_K.c: ../Thalamic_I_Na_K.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Thalamic_I_Na_K.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Thalamic_I_Na_K.o: ./Thalamic_I_Na_K.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Thalamic_I_T.c: ../Thalamic_I_T.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Thalamic_I_T.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./Thalamic_I_T.o: ./Thalamic_I_T.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./xtra.c: ../xtra.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "xtra.mod" -o "/home/people/22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model/x86_64")
+
+./xtra.o: ./xtra.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
