@@ -2,7 +2,7 @@
 #SBATCH --job-name=pts
 # speficity number of nodes 
 #SBATCH -N 10
-#SBATCH --array=1-50
+#SBATCH --array=20,48
 
 # specify number of tasks/cores per node required
 #SBATCH --ntasks-per-node 1
