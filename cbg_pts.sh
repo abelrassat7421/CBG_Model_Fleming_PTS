@@ -2,13 +2,13 @@
 #SBATCH --job-name=pts
 # speficity number of nodes 
 #SBATCH -N 10
-#SBATCH --array=20,48
+#SBATCH --array=51-650
 
 # specify number of tasks/cores per node required
 #SBATCH --ntasks-per-node 1
 
 # specify the walltime e.g 20 mins
-#SBATCH -t 15:00:00
+#SBATCH -t 3-00:00:00
 
 # set to email at start,end and failed jobs
 #SBATCH --mail-type=ALL
@@ -17,7 +17,7 @@
 module load openmpi/3.1.4
 source ~/cbg-environment/bin/activate
 export PYTHONUNBUFFERED=yes
-export PYNN_OUTPUT_DIRNAME=~22213094/scratch/PTS_test1/PTS-$(date +"%Y%m%d%H%M%S")-${SLURM_ARRAY_TASK_ID}
+export PYNN_OUTPUT_DIRNAME=~22213094/scratch/PTS_test1/PTS-${SLURM_ARRAY_TASK_ID}
 configfile=~22213094/CBG_Model_Fleming_PTS/configs/pts_test_${SLURM_ARRAY_TASK_ID}.yml
 
 cd ~22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model

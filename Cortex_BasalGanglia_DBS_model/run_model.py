@@ -244,8 +244,11 @@ if __name__ == "__main__":
     if len(controller_call_times) == 0:
         controller_call_times = np.array([controller_start])
     """
+    suffix = "_{}seed".format(rng_seed)
+    fname = "phase_t" + suffix +  ".mat"
+    path =str("Baseline_PTS_50" / fname)
 
-    mat_dic = sio.loadmat('phase_t.mat') 
+    mat_dic = sio.loadmat(phase) 
     stim_points = mat_dic['phase_t'][phase][0]
     stim_time_points = stim_points*rec_sampling_interval # convert the points into time points in ms 
     after_steady_state = np.array([stim_time_point > steady_state_duration for stim_time_point in stim_time_points])
