@@ -4,7 +4,7 @@
 IFS=',' read -r -a seeds <<< "$(cat random_seeds_50.txt)"
 
 # Loop over the array of seeds
-for (( j=1; j<=12; j++ )); do
+for (( j=0; j<=11; j++ )); do
     for i in "${!seeds[@]}"; do
         # Adjust index to start from 51
         index=$((i + j*50 + 1))
