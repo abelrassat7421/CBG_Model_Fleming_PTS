@@ -1,8 +1,8 @@
 #!/bin/bash -l
 #SBATCH --job-name=pts
 # speficity number of nodes 
-#SBATCH -N 10
-#SBATCH --array=51-650
+#SBATCH -N 20
+#SBATCH --array=274
 
 # specify number of tasks/cores per node required
 #SBATCH --ntasks-per-node 1
