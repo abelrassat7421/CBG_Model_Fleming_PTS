@@ -1,16 +1,9 @@
 #!/bin/bash -l
 #SBATCH --job-name=pts
-# speficity number of nodes 
 #SBATCH -N 10
-#SBATCH --array=0-400
-
-# specify number of tasks/cores per node required
-#SBATCH --ntasks-per-node 1
-
-# specify the walltime e.g 20 mins
+#SBATCH --array=910,954,966,981
+#SBATCH --ntasks-per-node=1
 #SBATCH -t 3-00:00:00
-
-# set to email at start,end and failed jobs
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=abel.rassat@ucdconnect.ie
 
@@ -22,6 +15,6 @@ configfile=~22213094/CBG_Model_Fleming_PTS/configs/pts_test_${SLURM_ARRAY_TASK_I
 
 cd ~22213094/CBG_Model_Fleming_PTS/Cortex_BasalGanglia_DBS_model
 
-# command to use
 mpirun -n ${SLURM_NPROCS} ./run_model.py -o ${PYNN_OUTPUT_DIRNAME} ${configfile}
 cp ~22213094/CBG_Model_Fleming_PTS/slurm-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out ${PYNN_OUTPUT_DIRNAME}
+
