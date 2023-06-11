@@ -7,7 +7,7 @@ IFS=',' read -r -a seeds <<< "$(cat random_seeds_50.txt)"
 for (( j=0; j<=11; j++ )); do
     for i in "${!seeds[@]}"; do
         # Adjust index to start from 51
-        index=$((i + j*50 + 601))
+        index=$((i + j*50 + 1))
 
         # Create a new config file with the current seed
         cat > "pts_test_${index}.yml" << EOF
