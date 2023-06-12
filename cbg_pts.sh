@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH --job-name=pts
 #SBATCH -N 10
-#SBATCH --array=401-600
+#SBATCH --array=479,529
 #SBATCH --ntasks-per-node=1
 #SBATCH -t 3-00:00:00
 #SBATCH --mail-type=ALL
